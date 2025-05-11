@@ -23,25 +23,39 @@ struct Move {
 
         string pgn;
         char pieceChar = toupper(pieceSymbol);
+        char fromFile = tolower(fromCoord[0]);
+        string toSquare = string(1, tolower(toCoord[0])) + toCoord[1];
 
-        // For promotions, always show pawn->queen (even if symbol is 'Q')
+        // Promotion (with or without capture)
         if (isPromotion) {
-            pgn += toCoord + "=Q"; // e.g., "e8=Q"
+            if (isCapture) {
+                pgn += fromFile;
+                pgn += 'x';
+            }
+            pgn += toSquare;
+            pgn += '=';
+            pgn += toupper(promotionTo);
+
             if (isCheckmate) pgn += '#';
             else if (isCheck) pgn += '+';
+
             return pgn;
         }
 
-        // Non-promotion moves
+        // Regular move
         if (pieceChar != 'P') pgn += pieceChar;
+
         if (isCapture) {
-            if (pieceChar == 'P') pgn += fromCoord[0];
+            if (pieceChar == 'P') pgn += fromFile;
             pgn += 'x';
         }
-        pgn += toCoord;
+
+        pgn += toSquare;
+
         if (isCheckmate) pgn += '#';
         else if (isCheck) pgn += '+';
 
         return pgn;
     }
+
 };

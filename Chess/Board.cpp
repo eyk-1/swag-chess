@@ -175,7 +175,7 @@
         return true;
     }
 
-    bool Board::isPromotionMove(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn)
+    bool Board::isPromotionMove(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn) const
     {
         Piece* piece = squares[fromRow][fromCol];
         if (dynamic_cast<Pawn*>(piece)) {
@@ -297,7 +297,6 @@
                 }
             }
         }
-        cout << endl << piececount << endl;
         if (piececount < 5) {
             return true;
         }

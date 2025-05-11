@@ -351,7 +351,6 @@ void Game::start() {
         Piece* moved = board.getPiece(toRow, toCol); // <- FIXED dangling pointer
         std::string fromCoord = input.substr(0, 2);
         std::string toCoord = input.substr(3, 2);
-
         bool isEnPassant = (moved && dynamic_cast<Pawn*>(moved) && fromCol != toCol && captured == nullptr);
 
         if (dynamic_cast<King*>(moved)) {
@@ -373,7 +372,7 @@ void Game::start() {
             fromCoord,
             toCoord,
             moved ? moved->getSymbol() : '?',
-            captured != nullptr,
+            captured != nullptr || isEnPassant,
             isEnPassant,
             isPromotion,
             'Q', 
