@@ -342,7 +342,7 @@ void Game::start() {
         }
 
         Piece* captured = board.getPiece(toRow, toCol);
-
+        bool isPromotion = board.isPromotionMove(fromRow, fromCol, toRow, toCol, whiteTurn);
         if (!board.movePiece(fromRow, fromCol, toRow, toCol, whiteTurn)) {
             std::cout << "Invalid move.\n";
             continue;
@@ -368,26 +368,21 @@ void Game::start() {
                 if (fromRow == 0 && fromCol == 7) canCastleKingside = false;
             }
         }
-        bool PromotionCheck = (dynamic_cast<Pawn*>(moved) &&
-            ((whiteTurn && toRow == 0) || (!whiteTurn && toRow == 7)));
         Move move = {
             whiteTurn ? "White" : "Black",
             fromCoord,
             toCoord,
             moved ? moved->getSymbol() : '?',
             captured != nullptr,
-            isEnPassant,PromotionCheck,
-                board.isInCheck(!whiteTurn),
-                board.isCheckmate(!whiteTurn),
-                isKingside,
-                isQueenside
-                };
-
-        // Handle promotion input
-        if (move.isPromotion && input.length() >= 7 && input[5] == '=') {
-            move.promotionTo = toupper(input[6]);
-        }   
-
+            isEnPassant,
+            isPromotion,
+            'Q', 
+            board.isInCheck(!whiteTurn),
+            board.isCheckmate(!whiteTurn),
+            isKingside,
+            isQueenside
+        };
+        
         if (!move.isCapture && !dynamic_cast<Pawn*>(moved)) ++turns;
         else turns = 0;
 

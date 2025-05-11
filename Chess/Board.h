@@ -33,6 +33,7 @@ public:
     bool hasEnPassant() const {
         return hasLastMove;
     }
+    bool isPromotionMove(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn);
     bool isInCheck(bool isWhiteKing);
     bool isCheckmate(bool isWhiteKing);
     bool isStalemate(bool isWhiteKing);

@@ -175,6 +175,18 @@
         return true;
     }
 
+    bool Board::isPromotionMove(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn)
+    {
+        Piece* piece = squares[fromRow][fromCol];
+        if (dynamic_cast<Pawn*>(piece)) {
+            if ((isWhiteTurn && toRow == 0) || (!isWhiteTurn && toRow == 7)) {
+                cout << "Promotion tingz";
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool Board::isInCheck(bool isWhiteKing) {
         int kingRow = -1, kingCol = -1;
 
