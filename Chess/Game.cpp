@@ -6,6 +6,7 @@
 #include "Queen.h"
 #include "Knight.h"
 #include "Bishop.h"
+#include "Board.h"
 #include <iostream>
 #include <cctype>
 #include <limits>
@@ -83,20 +84,21 @@ Game::Game() : whiteTurn(true) {
 }
 
 void Game::printPGN(const std::vector<std::string>& pgnMoves) {
-    std::cout << "[Event \"?\"]\n"
-        << "[Site \"?\"]\n"
-        << "[Date \"????.??.??\"]\n"
-        << "[Round \"?\"]\n"
-        << "[White \"?\"]\n"
-        << "[Black \"?\"]\n"
-        << "[Result \"1/2-1/2\"]\n\n";
-
     for (size_t i = 0; i < pgnMoves.size(); ++i) {
         if (i % 2 == 0)
             std::cout << (i / 2 + 1) << ". ";
         std::cout << pgnMoves[i] << " ";
         if (i % 2 == 1)
             std::cout << "\n";
+    }
+
+    std::cout << "\n";
+}
+
+void Game::printFEN(const vector<string>& fenMoves) {
+    cout << endl;
+    for (size_t i = 0; i < fenMoves.size(); ++i) {
+        cout << fenMoves[i] << endl;
     }
 
     std::cout << "\n";
@@ -113,7 +115,7 @@ int Game::evaluateBoard(Board& b, bool aiIsWhite) {
     bool aiCastled = false, oppCastled = false;
 
     const int CenterSquares[4][2] = { {3, 3}, {3, 4}, {4, 3}, {4, 4} };
-        
+
     for (int row = 0; row < 8; ++row) {
         for (int col = 0; col < 8; ++col) {
             Piece* piece = b.getPiece(row, col);
@@ -163,7 +165,42 @@ int Game::evaluateBoard(Board& b, bool aiIsWhite) {
     return score;
 }
 
+void Game::AmbiguityCheck(Board& board, bool isWhiteTurn, int fromRow, int fromCol, int toRow, int toCol)
+{
+    Piece* piece = board.getPiece(fromRow, fromCol);
+    if (!piece) {
+        return;
+    }
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if ((row == fromRow && col == fromCol) || (board.getPiece(row, col) == nullptr)) {
+                continue;
+            }
+            Piece* other = board.getPiece(row, col);
+            if (other->getSymbol() == piece->getSymbol() && other->isWhitePiece() == isWhiteTurn) {
+                if (other->isValidMove(row, col, toRow, toCol, &board)) {
+                    if (col != fromCol) {
+                        FileCheck = true;
+                        return;
+                    }
+                    else if (row != fromRow) {
+                        RankCheck = true;
+                        return;
+                    }
+                    else if (row != fromRow && col != fromCol) {
+                        FileCheck = true;
+                        RankCheck = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 int Game::minimax(Board& b, int depth, int alpha, int beta, bool maximizing, bool aiIsWhite) {
+    minimaxNodeCount++;
     if (depth == 0 || b.isCheckmate(true) || b.isCheckmate(false)) {
         return evaluateBoard(b, aiIsWhite);
     }
@@ -219,6 +256,7 @@ int Game::minimax(Board& b, int depth, int alpha, int beta, bool maximizing, boo
 }
 
 std::string Game::findBestMove(bool aiIsWhite) {
+    minimaxNodeCount = 0;
     int bestScore = std::numeric_limits<int>::min();
     std::string bestMove;
     for (int fromRow = 0; fromRow < 8; ++fromRow) {
@@ -261,6 +299,7 @@ std::string Game::findBestMove(bool aiIsWhite) {
             }
         }
     }
+    std::cout << "[Minimax Stats] Nodes: " << minimaxNodeCount << endl;
     return bestMove;
 }
 
@@ -285,7 +324,7 @@ void Game::start() {
 
     std::string input;
     int turns = 0;
-
+    int moves = 0;
     while (true) {
         board.printBoard();
         if (vsAI && whiteTurn != playerIsWhite) {
@@ -294,6 +333,8 @@ void Game::start() {
             std::cout << "bird plays: " << input << "\n";
             if (input.empty()) {
                 std::cout << "bird failed to produce a move.\n";
+                printPGN(pgnMoves);
+                printFEN(fenMoves);
                 break;
             }
         }
@@ -304,6 +345,7 @@ void Game::start() {
 
         if (input == "exit") {
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
 
@@ -343,6 +385,9 @@ void Game::start() {
 
         Piece* captured = board.getPiece(toRow, toCol);
         bool isPromotion = board.isPromotionMove(fromRow, fromCol, toRow, toCol, whiteTurn);
+        if (!dynamic_cast<Pawn*>(board.getPiece(fromRow, fromCol))) {
+            AmbiguityCheck(board, whiteTurn, fromRow, fromCol, toRow, toCol);
+        }
         if (!board.movePiece(fromRow, fromCol, toRow, toCol, whiteTurn)) {
             std::cout << "Invalid move.\n";
             continue;
@@ -354,17 +399,23 @@ void Game::start() {
         bool isEnPassant = (moved && dynamic_cast<Pawn*>(moved) && fromCol != toCol && captured == nullptr);
 
         if (dynamic_cast<King*>(moved)) {
-            canCastleKingside = false;
-            canCastleQueenside = false;
+            if (whiteTurn) {
+                WhiteCastleKingside = false;
+                WhiteCastleQueenside = false;
+            }
+            else {
+                BlackCastleKingside = false;
+                BlackCastleQueenside = false;
+            }
         }
         else if (dynamic_cast<Rook*>(moved)) {
             if (whiteTurn) {
-                if (fromRow == 7 && fromCol == 0) canCastleQueenside = false;
-                if (fromRow == 7 && fromCol == 7) canCastleKingside = false;
+                if (fromRow == 7 && fromCol == 0) WhiteCastleKingside = false;
+                if (fromRow == 7 && fromCol == 7) WhiteCastleQueenside = false;
             }
             else {
-                if (fromRow == 0 && fromCol == 0) canCastleQueenside = false;
-                if (fromRow == 0 && fromCol == 7) canCastleKingside = false;
+                if (fromRow == 0 && fromCol == 0) BlackCastleQueenside = false;
+                if (fromRow == 0 && fromCol == 7) BlackCastleKingside = false;
             }
         }
         Move move = {
@@ -375,20 +426,21 @@ void Game::start() {
             captured != nullptr || isEnPassant,
             isEnPassant,
             isPromotion,
-            'Q', 
+            'Q',
             board.isInCheck(!whiteTurn),
             board.isCheckmate(!whiteTurn),
             isKingside,
-            isQueenside
+            isQueenside,
+            RankCheck,
+            FileCheck
         };
-        
+        moves++;
         if (!move.isCapture && !dynamic_cast<Pawn*>(moved)) ++turns;
         else turns = 0;
 
         moveHistory.push_back(move);
         pgnMoves.push_back(move.toPGN());
         board.setLastMove(move);
-
         std::string current = board.getSimplePosition(whiteTurn);
         int count = 0;
         for (const auto& pos : previousPositions) {
@@ -397,6 +449,7 @@ void Game::start() {
         if (count == 2) {
             std::cout << "\nDraw by threefold repetition.\n";
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
 
@@ -404,6 +457,7 @@ void Game::start() {
         if (turns == 100) {
             std::cout << "\nDraw by 50-move rule.\n";
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
 
@@ -412,17 +466,20 @@ void Game::start() {
             std::cout << (whiteTurn ? "Black" : "White") << " is checkmated! "
                 << (whiteTurn ? "White" : "Black") << " wins!\n";
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
         else if (board.isStalemate(!whiteTurn)) {
             board.printBoard();
             std::cout << "Stalemate! The game is a draw.\n";
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
         else if (board.insufficientMaterialCheck()) {
             cout << "Draw due to insufficient material";
             printPGN(pgnMoves);
+            printFEN(fenMoves);
             break;
         }
         else if (move.isCheck) {
@@ -430,5 +487,8 @@ void Game::start() {
         }
 
         whiteTurn = !whiteTurn;
+        string fen = board.generateFEN(whiteTurn, WhiteCastleKingside, WhiteCastleQueenside, BlackCastleKingside, BlackCastleQueenside, turns, moves);
+        cout << endl << fen << endl;
+        fenMoves.push_back(fen);
     }
 }

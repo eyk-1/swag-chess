@@ -2,13 +2,14 @@
 #include "Piece.h"
 #include "Moves.h"
 #include "King.h"
-
+using namespace std;
 class Board {
 private:
     Piece* squares[8][8];
     bool shouldDeletePieces;
     Move lastMove;
     bool hasLastMove = false;
+    string enPassantTarget = "-";
 
 public:
     Board();
@@ -39,4 +40,5 @@ public:
     bool isStalemate(bool isWhiteKing);
     string getSimplePosition(bool whiteTurn) const;
     bool insufficientMaterialCheck();
+    string generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns, int moves) const;
 };

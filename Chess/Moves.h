@@ -16,6 +16,8 @@ struct Move {
     bool isCheckmate = false;
     bool isKingsideCastle = false;
     bool isQueensideCastle = false;
+    bool RankUnclear = false;
+    bool FileUnclear = false;
 
     string toPGN() const {
         if (isKingsideCastle) return "O-O";
@@ -24,9 +26,10 @@ struct Move {
         string pgn;
         char pieceChar = toupper(pieceSymbol);
         char fromFile = tolower(fromCoord[0]);
+        char fromRank = fromCoord[1];
         string toSquare = string(1, tolower(toCoord[0])) + toCoord[1];
 
-        // Promotion (with or without capture)
+        // Promotion
         if (isPromotion) {
             if (isCapture) {
                 pgn += fromFile;
@@ -35,27 +38,44 @@ struct Move {
             pgn += toSquare;
             pgn += '=';
             pgn += toupper(promotionTo);
-
             if (isCheckmate) pgn += '#';
             else if (isCheck) pgn += '+';
-
             return pgn;
         }
 
-        // Regular move
-        if (pieceChar != 'P') pgn += pieceChar;
+        // Piece moves (non-pawn)
+        if (pieceChar != 'P') {
+            pgn += pieceChar;
 
+            // Handle disambiguation
+            if (FileUnclear && RankUnclear) {
+                pgn += fromFile;
+                pgn += fromRank;
+            }
+            else if (FileUnclear) {
+                pgn += fromFile;
+            }
+            else if (RankUnclear) {
+                pgn += fromRank;
+            }
+        }
+
+        // Captures
         if (isCapture) {
-            if (pieceChar == 'P') pgn += fromFile;
+            if (pieceChar == 'P') {
+                pgn += fromFile;
+            }
             pgn += 'x';
         }
 
         pgn += toSquare;
 
+        // Check or checkmate
         if (isCheckmate) pgn += '#';
         else if (isCheck) pgn += '+';
 
         return pgn;
     }
+
 
 };

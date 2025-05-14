@@ -48,9 +48,6 @@
     <ClCompile Include="Moves.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AIMove.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h">

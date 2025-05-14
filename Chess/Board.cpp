@@ -7,6 +7,8 @@
     #include "King.h"
     #include <iostream>
     #include <sstream>
+
+using namespace std;
     Board::Board() : shouldDeletePieces(true) {
         initialize();
     }
@@ -155,6 +157,21 @@
             delete squares[fromRow][toCol];
             squares[fromRow][toCol] = nullptr;
         }
+        // FEN string - En passant
+        if (dynamic_cast <Pawn*>(piece)) {
+            int direction = isWhiteTurn ? -1 : 1;  // White moves up (row+1), black moves down (row-1)
+            int startRow = isWhiteTurn ? 6 : 1;    // Starting row (2 for white, 7 for black)
+            if (fromCol == toCol && fromRow == startRow && toRow == fromRow + 2 * direction && getPiece(fromRow + direction, fromCol) == nullptr && getPiece(toRow, toCol) == nullptr) {
+                char file = 'a' + fromCol;
+                int rank = isWhiteTurn ? 3 : 6;  // target square row in algebraic (i.e. e3 or e6)
+
+                enPassantTarget = string(1, file) + to_string(rank);
+
+            }
+        }
+        else {
+            enPassantTarget = "-";
+        }
 
         // Promotion
         if (dynamic_cast<Pawn*>(piece)) {
@@ -180,7 +197,6 @@
         Piece* piece = squares[fromRow][fromCol];
         if (dynamic_cast<Pawn*>(piece)) {
             if ((isWhiteTurn && toRow == 0) || (!isWhiteTurn && toRow == 7)) {
-                cout << "Promotion tingz";
                 return true;
             }
         }
@@ -308,5 +324,53 @@
     void Board::setLastMove(const Move& move) {
         lastMove = move;
         hasLastMove = true;
+    }
+    string Board::generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns,int moves) const {
+        string fen;
+        // 1. Piece Placement
+        for (int row = 0; row < 8; ++row) {
+            int emptyCount = 0;
+            for (int col = 0; col < 8; ++col) {
+                Piece* piece = squares[row][col];
+                if (piece) {
+                    if (emptyCount > 0) {
+                        fen += std::to_string(emptyCount);
+                        emptyCount = 0;
+                    }
+                    fen += piece->getSymbol(); // Implement this method in your Piece class
+                }
+                else {
+                    ++emptyCount;
+                }
+            }
+            if (emptyCount > 0) {
+                fen += std::to_string(emptyCount);
+            }
+            if (row != 7) {
+                fen += '/';
+            }
+        }
+
+        // 2. Active Color
+        fen += (whiteTurn ? " w " : " b ");
+
+        // 3. Castling Availability
+        std::string castling;
+        if (WhiteCastleKingside) castling += 'K';
+        if (WhiteCastleQueenside) castling += 'Q';
+        if (BlackCastleKingside) castling += 'k';
+        if (BlackCastleQueenside) castling += 'q';
+        fen += (castling.empty() ? "- " : castling + " ");
+
+        // 4. En Passant Target Square
+        fen += enPassantTarget.empty() ? "- " : enPassantTarget + " ";
+
+        // 5. Halfmove Clock
+        fen += std::to_string(turns) + " ";
+
+        // 6. Fullmove Number
+        fen += std::to_string(moves/2);
+
+        return fen;
     }
 
