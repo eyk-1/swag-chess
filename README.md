@@ -11,8 +11,8 @@ Player vs Player and Player vs AI modes – Minimax AI with a static evaluation 
 ## 3. Object-Oriented Design  
 The game is structured around a `Piece` base class with derived classes for each chess piece. Each piece overrides the `isValidMove` method to define its legal move set. This is polymorphism used, showing that each piece has its own specific rules for movement, allowing reusability of code and creates efficiency. The `Board` class manages the 8x8 grid and enforces movement and game rules. The `Game` class handles the main loop, PGN/FEN tracking, and player/AI turns. `Move` struct objects track metadata including checks, castling, and disambiguation.
 
-## 4. AI Logic  
-The AI uses the Minimax algorithm with alpha-beta pruning to select the best move. An evaluation function considers: Material balance, Piece-square table bonuses, Castling status, Center control and development. Depth is currently fixed to 3 for performance balance.
+## 4. AI Logic - Bird Engine
+The Bird Engine uses the Minimax algorithm with alpha-beta pruning to select the best move. An evaluation function considers: Material balance, Piece-square table bonuses, Castling status, Center control and development. Depth is currently fixed to 3 for performance balance.
 
 ## 5. PGN & FEN Implementation  
 PGN (Portable Game Notation) is constructed move-by-move and includes disambiguation logic for cases like Nfg4. FEN (Forsyth-Edwards Notation) is generated after each turn and includes castling rights, en passant squares, half-move and full-move counters. Move History printed at the end of the game both in FEN or PGN, so it can be shared to other engines or sites.
@@ -21,7 +21,7 @@ PGN (Portable Game Notation) is constructed move-by-move and includes disambigua
 The game has been tested through: Simulated full-length games (PvP and vs AI), Verification on chess.com analysis board, Edge case handling: checkmate, stalemate, draw rules.
 
 ## 7. Challenges & Learnings  
-**Challenges:** Implementing full rule compliance (especially castling, en passant and checkmate). PGN ambiguity resolution (e.g., Nfg4 disambiguation). AI behaviour tuning for playability. Fixed bugs in the checkmate function by fully copying the board through a customized copy constructor. Castling and en passant was fixed by tracking the last move and seeing if the king or rook was moved. Flags used to track and store every move. AI is still a work in progress. One of the games played by the bird engine was given an 84% accuracy by stockfish (against a 1400 ELO rating player, me). Better heuristics can be added, and scoring can be adjusted to play the top engine moves.
+**Challenges:** Implementing full rule compliance (especially castling, en passant and checkmate). PGN ambiguity resolution (e.g., Nfg4 disambiguation). engine behaviour tuning for playability. Fixed bugs in the checkmate function by fully copying the board through a customized copy constructor. Castling and en passant was fixed by tracking the last move and seeing if the king or rook was moved. Flags used to track and store every move. AI is still a work in progress. One of the games played by the bird engine was given an 84% accuracy by stockfish (against a 1400 ELO rating player, me). Better heuristics can be added, and scoring can be adjusted to play the top engine moves.
 
 **Learnings:** Deeper understanding of move notation and chess logic. Debugging polymorphic C++ code. Working with game state representation (FEN/PGN). Using 2D arrays is not the most efficient way to go, bit boards and hashing is a much better option, so will consider this moving forward.
 
