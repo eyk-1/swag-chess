@@ -29,4 +29,5 @@ public:
     int evaluateBoard(Board& board, bool isWhitePerspective);
     void AmbiguityCheck(Board& board, bool isWhite, int fromRow, int fromCol, int toRow, int toCol);
     Board getBoard() { return board; }
+    bool isWhiteTurn() { return whiteTurn; }
 };
