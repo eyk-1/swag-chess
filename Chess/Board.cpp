@@ -21,12 +21,56 @@ using namespace std;
         }
     }
 
-    Board::Board(const Board& other) : shouldDeletePieces(true) {  // Changed to true
+    Board::Board(const Board& other) : shouldDeletePieces(true), hasLastMove(other.hasLastMove), lastMove(other.lastMove), enPassantTarget(other.enPassantTarget) {
+        // Initialize all squares to nullptr first
         for (int row = 0; row < 8; ++row) {
             for (int col = 0; col < 8; ++col) {
-                squares[row][col] = other.squares[row][col] ? other.squares[row][col]->clone() : nullptr;
+                squares[row][col] = nullptr;
             }
         }
+
+        // Then copy the pieces
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                if (other.squares[row][col] != nullptr) {
+                    squares[row][col] = other.squares[row][col]->clone();
+                }
+            }
+        }
+    }
+
+    // You should also add an assignment operator to be safe:
+    Board& Board::operator=(const Board& other) {
+        if (this != &other) {
+            // Clean up existing pieces
+            if (shouldDeletePieces) {
+                for (int row = 0; row < 8; ++row) {
+                    for (int col = 0; col < 8; ++col) {
+                        delete squares[row][col];
+                        squares[row][col] = nullptr;
+                    }
+                }
+            }
+
+            // Copy new pieces
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 8; ++col) {
+                    if (other.squares[row][col] != nullptr) {
+                        squares[row][col] = other.squares[row][col]->clone();
+                    }
+                    else {
+                        squares[row][col] = nullptr;
+                    }
+                }
+            }
+
+            // Copy other members
+            hasLastMove = other.hasLastMove;
+            lastMove = other.lastMove;
+            enPassantTarget = other.enPassantTarget;
+            shouldDeletePieces = true;
+        }
+        return *this;
     }
 
 

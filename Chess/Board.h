@@ -15,6 +15,7 @@ public:
     Board();
     ~Board();
     Board(const Board& other);
+    Board& operator=(const Board& other);
 
     void initialize();
     void printBoard();

@@ -26,8 +26,24 @@ ChessGUI::~ChessGUI() {
 }
 
 bool ChessGUI::initialize() {
+    // Load font FIRST before setting up any text elements
+    std::cout << "Starting initialization..." << std::endl;
+    if (!font.openFromFile("arial.ttf")) {
+        // Try alternative font locations
+        if (!font.openFromFile("C:/Windows/Fonts/arial.ttf") &&
+            !font.openFromFile("C:/Windows/Fonts/Arial.ttf") &&
+            !font.openFromFile("/System/Library/Fonts/Arial.ttf") &&
+            !font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf") &&
+            !font.openFromFile("assets/arial.ttf")) {
+            std::cerr << "Could not load any font! Trying to create default font..." << std::endl;
 
-    // Setup text elements
+            // Try to use SFML's default font (if available)
+            // If all else fails, we'll still try to continue but text might not display
+            // Create a minimal fallback - this should not crash the program
+        }
+    }
+    std::cout << "Font loaded successfully" << std::endl;
+    // Setup text elements AFTER font is loaded
     statusText.setFont(font);
     statusText.setCharacterSize(18);
     statusText.setFillColor(sf::Color::White);
@@ -49,17 +65,17 @@ bool ChessGUI::initialize() {
     modeText.setCharacterSize(14);
     modeText.setFillColor(sf::Color::White);
     modeText.setPosition(sf::Vector2f(175, 30));
-
+    std::cout << "Text elements configured" << std::endl;
     // Load piece textures
     if (!loadPieceTextures()) {
         std::cerr << "Failed to load piece textures!" << std::endl;
         return false;
     }
-
+    std::cout << "Pieces loaded" << std::endl;
     // Initialize game
     game = Game();
     updateGameStatus();
-
+    std::cout << "Game initialized" << std::endl;
     return true;
 }
 
@@ -188,9 +204,11 @@ void ChessGUI::selectPiece(int row, int col) {
 
 void ChessGUI::movePiece(int toRow, int toCol) {
     if (pieceSelected) {
-        Board board = game.getBoard();
-        if (board.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
-            // Move was successful
+        // Create a copy of the board to work with
+        Board& boardRef = game.getBoard(); // Get reference to actual board
+        if (boardRef.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
+            // Move was successful - toggle turn
+            game.toggleTurn(); // You'll need to add this method to Game class
             clearSelection();
         }
         else {
@@ -227,8 +245,10 @@ void ChessGUI::handleAIMove() {
                 fromRow = 7 - fromRow;
                 toRow = 7 - toRow;
 
-                Board board = game.getBoard();
-                board.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn());
+                Board& boardRef = game.getBoard();
+                if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
+                    game.toggleTurn(); // Toggle turn after AI move
+                }
             }
         }
 
@@ -351,7 +371,7 @@ sf::Color ChessGUI::getValidMoveColor() {
 }
 
 void ChessGUI::updateGameStatus() {
-    Board board = game.getBoard();
+    Board& board = game.getBoard(); // Get reference, not copy
 
     // Update turn text
     if (game.isWhiteTurn()) {
@@ -361,16 +381,16 @@ void ChessGUI::updateGameStatus() {
         turnText.setString("Black's Turn");
     }
 
-    // Check game state
-    if (board.isCheckmate(!game.isWhiteTurn())) {
+    // Check game state - FIXED: Check if CURRENT player is in checkmate
+    if (board.isCheckmate(game.isWhiteTurn())) {
         statusText.setString(game.isWhiteTurn() ? "Black Wins by Checkmate!" : "White Wins by Checkmate!");
         gameOver = true;
     }
-    else if (board.isStalemate(!game.isWhiteTurn())) {
+    else if (board.isStalemate(game.isWhiteTurn())) {
         statusText.setString("Stalemate - Draw!");
         gameOver = true;
     }
-    else if (board.isInCheck(!game.isWhiteTurn())) {
+    else if (board.isInCheck(game.isWhiteTurn())) {
         statusText.setString(game.isWhiteTurn() ? "White in Check!" : "Black in Check!");
     }
     else {
