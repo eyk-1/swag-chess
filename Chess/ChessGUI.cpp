@@ -1,94 +1,89 @@
 #include "ChessGUI.h"
 #include <iostream>
-#include <sstream>
+#include <filesystem>
 
-ChessGUI::ChessGUI(bool multiplayer)
-    : window(sf::VideoMode({ 830u, 580u }), "Swag Chess"),
-    game(),
-    gameMode(multiplayer),
-    isAIWhite(false),
-    whiteTurn(true),
-    selectedRow(-1),
-    selectedCol(-1),
-    pieceSelected(false),
-    gameOver(false),
-    historyScrollOffset(0) {
+ChessGUI::ChessGUI(bool playVsAI, bool aiPlaysWhite)
+    : window(sf::VideoMode({ 800u, 800u }), "Swag Chess"),
+    pieceSelected(false), selectedRow(-1), selectedCol(-1),
+    gameOver(false), vsAI(playVsAI), aiIsWhite(aiPlaysWhite), statusText(font), turnText(font), newGameText(font), modeText(font) {
+
+    // Initialize highlight square
+    highlightSquare.setSize(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
+    highlightSquare.setFillColor(getHighlightColor());
+
+    // Initialize UI elements
+    newGameButton.setSize(sf::Vector2f(120, 40));
+    newGameButton.setPosition(sf::Vector2f(20, 20));
+    newGameButton.setFillColor(sf::Color(70, 130, 180));
+
+    modeButton.setSize(sf::Vector2f(120, 40));
+    modeButton.setPosition(sf::Vector2f(150, 20));
+    modeButton.setFillColor(sf::Color(180, 130, 70));
 }
 
 ChessGUI::~ChessGUI() {
+    // Destructor
 }
 
 bool ChessGUI::initialize() {
-    if (!font.openFromFile("arial.ttf")) {
-        std::cerr << "Failed to load font!" << std::endl;
-        return false;
-    }
 
-    if (!loadPieceTextures()) {
-        std::cerr << "Failed to load piece textures!" << std::endl;
-        return false;
-    }
+    // Setup text elements
+    statusText.setFont(font);
+    statusText.setCharacterSize(18);
+    statusText.setFillColor(sf::Color::White);
+    statusText.setPosition(sf::Vector2f(20, 750));
 
-    // Initialize UI elements
-    boardBackground.setSize(sf::Vector2f(BOARD_SIZE, BOARD_SIZE));
-    boardBackground.setPosition(sf::Vector2f(BOARD_OFFSET_X, BOARD_OFFSET_Y));
-    boardBackground.setFillColor(sf::Color(139, 69, 19));
-
-    sidebar.setSize(sf::Vector2f(SIDEBAR_WIDTH, 580));
-    sidebar.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 10, 0));
-    sidebar.setFillColor(sf::Color(50, 50, 50));
-
-    // Game status text
-    gameStatusText.setFont(font);
-    gameStatusText.setCharacterSize(20);
-    gameStatusText.setFillColor(sf::Color::White);
-    gameStatusText.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20, 20));
-
-    // Turn indicator
-    turnIndicator.setFont(font);
-    turnIndicator.setCharacterSize(18);
-    turnIndicator.setFillColor(sf::Color::White);
-    turnIndicator.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20, 50));
-
-    // Move history title
-    moveHistoryTitle.setFont(font);
-    moveHistoryTitle.setString("Move History:");
-    moveHistoryTitle.setCharacterSize(16);
-    moveHistoryTitle.setFillColor(sf::Color::White);
-    moveHistoryTitle.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20, 90));
-
-    // New game button
-    newGameButton.setSize(sf::Vector2f(120, 40));
-    newGameButton.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20, 480));
-    newGameButton.setFillColor(sf::Color(0, 150, 0));
+    turnText.setFont(font);
+    turnText.setCharacterSize(16);
+    turnText.setFillColor(sf::Color::White);
+    turnText.setPosition(sf::Vector2f(400, 750));
 
     newGameText.setFont(font);
     newGameText.setString("New Game");
     newGameText.setCharacterSize(14);
     newGameText.setFillColor(sf::Color::White);
-    newGameText.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 35, 495));
+    newGameText.setPosition(sf::Vector2f(35, 30));
 
-    // Exit button
-    exitButton.setSize(sf::Vector2f(120, 40));
-    exitButton.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 150, 480));
-    exitButton.setFillColor(sf::Color(150, 0, 0));
+    modeText.setFont(font);
+    modeText.setString(vsAI ? "vs AI" : "vs Human");
+    modeText.setCharacterSize(14);
+    modeText.setFillColor(sf::Color::White);
+    modeText.setPosition(sf::Vector2f(175, 30));
 
-    exitText.setFont(font);
-    exitText.setString("Exit");
-    exitText.setCharacterSize(14);
-    exitText.setFillColor(sf::Color::White);
-    exitText.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 185, 495));
+    // Load piece textures
+    if (!loadPieceTextures()) {
+        std::cerr << "Failed to load piece textures!" << std::endl;
+        return false;
+    }
 
+    // Initialize game
+    game = Game();
     updateGameStatus();
 
     return true;
 }
 
-void ChessGUI::run() {
-    if (!initialize()) {
-        return;
+bool ChessGUI::loadPieceTextures() {
+    std::vector<std::string> pieces = { "wp", "wr", "wn", "wb", "wq", "wk",
+                                       "bp", "br", "bn", "bb", "bq", "bk" };
+
+    for (const std::string& piece : pieces) {
+        sf::Texture texture;
+        std::string path = "assets/" + piece + ".png";
+
+        if (!texture.loadFromFile(path)) {
+            std::cerr << "Failed to load texture: " << path << std::endl;
+            return false;
+        }
+
+        pieceTextures[piece] = std::move(texture);
     }
 
+    std::cout << "Successfully loaded " << pieceTextures.size() << " piece textures." << std::endl;
+    return true;
+}
+
+void ChessGUI::run() {
     while (window.isOpen()) {
         handleEvents();
         update();
@@ -104,18 +99,37 @@ void ChessGUI::handleEvents() {
 
         if (const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if (mousePressed->button == sf::Mouse::Button::Left) {
-                handleMouseClick(static_cast<int>(mousePressed->position.x),
-                    static_cast<int>(mousePressed->position.y));
-            }
-        }
+                sf::Vector2i mousePos = sf::Vector2i(mousePressed->position);
 
-        if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
-            if (keyPressed->code == sf::Keyboard::Key::Up && historyScrollOffset > 0) {
-                historyScrollOffset--;
-            }
-            if (keyPressed->code == sf::Keyboard::Key::Down &&
-                historyScrollOffset < static_cast<int>(moveHistory.size()) - 20) {
-                historyScrollOffset++;
+                // Check UI button clicks
+                if (newGameButton.getGlobalBounds().contains(sf::Vector2f(mousePos))) {
+                    resetGame();
+                    continue;
+                }
+
+                if (modeButton.getGlobalBounds().contains(sf::Vector2f(mousePos))) {
+                    toggleMode();
+                    continue;
+                }
+
+                // Handle board clicks only if it's human's turn
+                if (!gameOver && (!vsAI || (vsAI && game.isWhiteTurn() != aiIsWhite))) {
+                    sf::Vector2i boardPos = getBoardPosition(mousePos);
+
+                    if (isValidBoardPosition(boardPos)) {
+                        if (!pieceSelected) {
+                            selectPiece(boardPos.y, boardPos.x);
+                        }
+                        else {
+                            if (boardPos.x == selectedCol && boardPos.y == selectedRow) {
+                                clearSelection();
+                            }
+                            else {
+                                movePiece(boardPos.y, boardPos.x);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -123,150 +137,118 @@ void ChessGUI::handleEvents() {
 
 void ChessGUI::update() {
     updateGameStatus();
-    checkGameEnd();
 
-    // Check if it's AI's turn in AI mode
-    if (!gameMode && !gameOver) {
-        if (whiteTurn == isAIWhite) {
-            makeAIMove();
-        }
+    // Handle AI move if it's AI's turn
+    if (!gameOver && vsAI && game.isWhiteTurn() == aiIsWhite) {
+        handleAIMove();
     }
 }
 
 void ChessGUI::render() {
-    window.clear(sf::Color(30, 30, 30));
+    window.clear(sf::Color(40, 40, 40));
 
     drawBoard();
     drawHighlights();
     drawPieces();
-    drawSidebar();
-    drawMoveHistory();
-    drawGameStatus();
     drawUI();
 
     window.display();
 }
 
-void ChessGUI::handleMouseClick(int x, int y) {
-    // Check if click is on the board
-    if (x >= BOARD_OFFSET_X && x < BOARD_OFFSET_X + BOARD_SIZE &&
-        y >= BOARD_OFFSET_Y && y < BOARD_OFFSET_Y + BOARD_SIZE) {
-        auto [row, col] = pixelToSquare(x, y);
-        handleBoardClick(row, col);
-    }
-    else {
-        handleUIClick(x, y);
-    }
+sf::Vector2i ChessGUI::getBoardPosition(sf::Vector2i mousePos) {
+    int x = (mousePos.x - BOARD_OFFSET_X) / SQUARE_SIZE;
+    int y = (mousePos.y - BOARD_OFFSET_Y) / SQUARE_SIZE;
+    return sf::Vector2i(x, y);
 }
 
-void ChessGUI::handleBoardClick(int row, int col) {
-    if (gameOver || row < 0 || row > 7 || col < 0 || col > 7) return;
+bool ChessGUI::isValidBoardPosition(sf::Vector2i pos) {
+    return pos.x >= 0 && pos.x < 8 && pos.y >= 0 && pos.y < 8;
+}
 
-    Board board = game.getBoard(); // Create a copy to avoid reference issues
-    Piece* clickedPiece = board.getPiece(row, col);
+void ChessGUI::selectPiece(int row, int col) {
+    Board board = game.getBoard();
+    Piece* piece = board.getPiece(row, col);
 
-    if (!pieceSelected) {
-        // Select a piece
-        if (clickedPiece != nullptr) {
-            // Check if it's the correct player's turn
-            if (clickedPiece->isWhitePiece() == whiteTurn || gameMode) {
-                selectedRow = row;
-                selectedCol = col;
-                pieceSelected = true;
-                updateValidMoves();
+    if (piece && piece->isWhitePiece() == game.isWhiteTurn()) {
+        pieceSelected = true;
+        selectedRow = row;
+        selectedCol = col;
+
+        // Calculate valid moves (simplified - you might want to implement this properly)
+        validMoves.clear();
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (piece->isValidMove(row, col, r, c, &board)) {
+                    validMoves.push_back(sf::Vector2i(c, r));
+                }
             }
         }
     }
-    else {
-        // Try to move the selected piece
-        if (row == selectedRow && col == selectedCol) {
-            // Deselect
-            pieceSelected = false;
-            validMoves.clear();
+}
+
+void ChessGUI::movePiece(int toRow, int toCol) {
+    if (pieceSelected) {
+        Board board = game.getBoard();
+        if (board.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
+            // Move was successful
+            clearSelection();
         }
         else {
-            // Check if this is a valid move
-            bool validMove = false;
-            for (const auto& move : validMoves) {
-                if (move.first == row && move.second == col) {
-                    validMove = true;
-                    break;
-                }
-            }
-
-            if (validMove) {
-                // Make the move
-                Board tempBoard = game.getBoard();
-                if (tempBoard.movePiece(selectedRow, selectedCol, row, col, whiteTurn)) {
-                    // Move was successful - update the game board
-                    game = Game(); // This is a placeholder - you'll need proper move integration
-
-                    // Convert coordinates to chess notation
-                    char fromFile = 'a' + selectedCol;
-                    char toFile = 'a' + col;
-                    int fromRank = 8 - selectedRow;
-                    int toRank = 8 - row;
-
-                    std::string moveNotation = std::string(1, fromFile) + std::to_string(fromRank) +
-                        "-" + std::string(1, toFile) + std::to_string(toRank);
-                    addMoveToHistory(moveNotation);
-
-                    // Switch turns
-                    whiteTurn = !whiteTurn;
-                }
-                pieceSelected = false;
-                validMoves.clear();
-            }
-            else {
-                // Try to select a new piece
-                if (clickedPiece != nullptr) {
-                    if (clickedPiece->isWhitePiece() == whiteTurn || gameMode) {
-                        selectedRow = row;
-                        selectedCol = col;
-                        updateValidMoves();
-                    }
-                    else {
-                        pieceSelected = false;
-                        validMoves.clear();
-                    }
-                }
-                else {
-                    pieceSelected = false;
-                    validMoves.clear();
-                }
-            }
+            // Invalid move, keep selection or clear it
+            clearSelection();
         }
     }
 }
 
-void ChessGUI::handleUIClick(int x, int y) {
-    sf::Vector2f mousePos(static_cast<float>(x), static_cast<float>(y));
+void ChessGUI::clearSelection() {
+    pieceSelected = false;
+    selectedRow = -1;
+    selectedCol = -1;
+    validMoves.clear();
+}
 
-    // Check new game button
-    if (newGameButton.getGlobalBounds().contains(mousePos)) {
-        resetGame();
-    }
+void ChessGUI::handleAIMove() {
+    static sf::Clock aiThinkTime;
 
-    // Check exit button
-    if (exitButton.getGlobalBounds().contains(mousePos)) {
-        window.close();
+    // Add a small delay so AI doesn't move instantly
+    if (aiThinkTime.getElapsedTime().asSeconds() > 1.0f) {
+        std::string bestMove = game.findBestMove(aiIsWhite);
+
+        if (!bestMove.empty()) {
+            // Parse the move string and execute it
+            // Assuming bestMove format is something like "e2e4"
+            if (bestMove.length() >= 4) {
+                int fromCol = bestMove[0] - 'a';
+                int fromRow = bestMove[1] - '1';
+                int toCol = bestMove[2] - 'a';
+                int toRow = bestMove[3] - '1';
+
+                // Convert to 0-7 range and flip for display
+                fromRow = 7 - fromRow;
+                toRow = 7 - toRow;
+
+                Board board = game.getBoard();
+                board.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn());
+            }
+        }
+
+        aiThinkTime.restart();
     }
 }
 
 void ChessGUI::drawBoard() {
-    window.draw(boardBackground);
-
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             sf::RectangleShape square(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
             square.setPosition(sf::Vector2f(BOARD_OFFSET_X + col * SQUARE_SIZE,
                 BOARD_OFFSET_Y + row * SQUARE_SIZE));
 
+            // Alternate colors
             if ((row + col) % 2 == 0) {
-                square.setFillColor(lightSquareColor);
+                square.setFillColor(getLightSquareColor());
             }
             else {
-                square.setFillColor(darkSquareColor);
+                square.setFillColor(getDarkSquareColor());
             }
 
             window.draw(square);
@@ -280,11 +262,23 @@ void ChessGUI::drawPieces() {
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             Piece* piece = board.getPiece(row, col);
-            if (piece != nullptr) {
-                sf::Sprite& pieceSprite = getPieceSprite(piece->getSymbol(), piece->isWhitePiece());
-                auto [x, y] = squareToPixel(row, col);
-                pieceSprite.setPosition(sf::Vector2f(static_cast<float>(x), static_cast<float>(y)));
-                window.draw(pieceSprite);
+            if (piece) {
+                std::string textureKey = getPieceTextureKey(piece);
+
+                if (pieceTextures.find(textureKey) != pieceTextures.end()) {
+                    sf::Sprite sprite(pieceTextures[textureKey]);
+
+                    // Scale the sprite to fit the square
+                    sf::Vector2u textureSize = pieceTextures[textureKey].getSize();
+                    float scaleX = (float)SQUARE_SIZE / textureSize.x;
+                    float scaleY = (float)SQUARE_SIZE / textureSize.y;
+                    sprite.setScale(sf::Vector2f(scaleX, scaleY));
+
+                    sprite.setPosition(sf::Vector2f(BOARD_OFFSET_X + col * SQUARE_SIZE,
+                        BOARD_OFFSET_Y + row * SQUARE_SIZE));
+
+                    window.draw(sprite);
+                }
             }
         }
     }
@@ -293,246 +287,112 @@ void ChessGUI::drawPieces() {
 void ChessGUI::drawHighlights() {
     // Highlight selected square
     if (pieceSelected) {
-        sf::RectangleShape highlight(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
-        auto [x, y] = squareToPixel(selectedRow, selectedCol);
-        highlight.setPosition(sf::Vector2f(static_cast<float>(x), static_cast<float>(y)));
-        highlight.setFillColor(highlightColor);
-        window.draw(highlight);
+        highlightSquare.setPosition(sf::Vector2f(BOARD_OFFSET_X + selectedCol * SQUARE_SIZE,
+            BOARD_OFFSET_Y + selectedRow * SQUARE_SIZE));
+        window.draw(highlightSquare);
     }
 
     // Highlight valid moves
-    for (const auto& move : validMoves) {
-        sf::RectangleShape highlight(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
-        auto [x, y] = squareToPixel(move.first, move.second);
-        highlight.setPosition(sf::Vector2f(static_cast<float>(x), static_cast<float>(y)));
-        highlight.setFillColor(moveHighlight);
-        window.draw(highlight);
+    sf::RectangleShape validMoveSquare(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
+    validMoveSquare.setFillColor(getValidMoveColor());
+
+    for (const sf::Vector2i& move : validMoves) {
+        validMoveSquare.setPosition(sf::Vector2f(BOARD_OFFSET_X + move.x * SQUARE_SIZE,
+            BOARD_OFFSET_Y + move.y * SQUARE_SIZE));
+        window.draw(validMoveSquare);
     }
-
-    // Highlight kings in check
-    Board board = game.getBoard();
-    if (board.isInCheck(true)) {
-        // Find white king and highlight
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                Piece* piece = board.getPiece(row, col);
-                if (piece && piece->getSymbol() == 'K' && piece->isWhitePiece()) {
-                    sf::RectangleShape highlight(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
-                    auto [x, y] = squareToPixel(row, col);
-                    highlight.setPosition(sf::Vector2f(static_cast<float>(x), static_cast<float>(y)));
-                    highlight.setFillColor(checkHighlight);
-                    window.draw(highlight);
-                    break;
-                }
-            }
-        }
-    }
-
-    if (board.isInCheck(false)) {
-        // Find black king and highlight
-        for (int row = 0; row < 8; row++) {
-            for (int col = 0; col < 8; col++) {
-                Piece* piece = board.getPiece(row, col);
-                if (piece && piece->getSymbol() == 'k' && !piece->isWhitePiece()) {
-                    sf::RectangleShape highlight(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
-                    auto [x, y] = squareToPixel(row, col);
-                    highlight.setPosition(sf::Vector2f(static_cast<float>(x), static_cast<float>(y)));
-                    highlight.setFillColor(checkHighlight);
-                    window.draw(highlight);
-                    break;
-                }
-            }
-        }
-    }
-}
-
-void ChessGUI::drawSidebar() {
-    window.draw(sidebar);
-}
-
-void ChessGUI::drawMoveHistory() {
-    window.draw(moveHistoryTitle);
-
-    int startY = 120;
-    int lineHeight = 18;
-    int maxLines = 20;
-
-    for (int i = historyScrollOffset;
-        i < static_cast<int>(moveHistory.size()) && i < historyScrollOffset + maxLines;
-        i++) {
-        sf::Text moveText (font);
-        moveText.setFont(font);
-        moveText.setString(std::to_string(i + 1) + ". " + moveHistory[i]);
-        moveText.setCharacterSize(12);
-        moveText.setFillColor(sf::Color::White);
-        moveText.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20,
-            startY + (i - historyScrollOffset) * lineHeight));
-        window.draw(moveText);
-    }
-
-    // Scroll indicator
-    if (moveHistory.size() > maxLines) {
-        sf::Text scrollHint (font);
-        scrollHint.setFont(font);
-        scrollHint.setString("Use Up/Down arrows to scroll");
-        scrollHint.setCharacterSize(10);
-        scrollHint.setFillColor(sf::Color(150, 150, 150));
-        scrollHint.setPosition(sf::Vector2f(BOARD_OFFSET_X + BOARD_SIZE + 20,
-            startY + maxLines * lineHeight + 10));
-        window.draw(scrollHint);
-    }
-}
-
-void ChessGUI::drawGameStatus() {
-    window.draw(gameStatusText);
-    window.draw(turnIndicator);
 }
 
 void ChessGUI::drawUI() {
+    // Draw buttons
     window.draw(newGameButton);
     window.draw(newGameText);
-    window.draw(exitButton);
-    window.draw(exitText);
+    window.draw(modeButton);
+    window.draw(modeText);
+
+    // Draw status texts
+    window.draw(statusText);
+    window.draw(turnText);
 }
 
-std::pair<int, int> ChessGUI::pixelToSquare(int x, int y) {
-    int col = (x - BOARD_OFFSET_X) / SQUARE_SIZE;
-    int row = (y - BOARD_OFFSET_Y) / SQUARE_SIZE;
-    return { row, col };
-}
+std::string ChessGUI::getPieceTextureKey(Piece* piece) {
+    if (!piece) return "";
 
-std::pair<int, int> ChessGUI::squareToPixel(int row, int col) {
-    int x = BOARD_OFFSET_X + col * SQUARE_SIZE;
-    int y = BOARD_OFFSET_Y + row * SQUARE_SIZE;
-    return { x, y };
-}
+    char symbol = piece->getSymbol();
+    std::string key;
 
-void ChessGUI::updateValidMoves() {
-    validMoves.clear();
-    if (!pieceSelected) return;
-
-    Board board = game.getBoard();
-    Piece* piece = board.getPiece(selectedRow, selectedCol);
-    if (piece == nullptr) return;
-
-    // Check all possible moves
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            if (piece->isValidMove(selectedRow, selectedCol, row, col, &board)) {
-                validMoves.push_back({ row, col });
-            }
-        }
+    if (piece->isWhitePiece()) {
+        key = "w";
     }
+    else {
+        key = "b";
+    }
+
+    // Convert piece symbol to lowercase
+    key += tolower(symbol);
+
+    return key;
+}
+
+sf::Color ChessGUI::getLightSquareColor() {
+    return sf::Color(240, 217, 181);  // Light beige
+}
+
+sf::Color ChessGUI::getDarkSquareColor() {
+    return sf::Color(181, 136, 99);   // Dark brown
+}
+
+sf::Color ChessGUI::getHighlightColor() {
+    return sf::Color(255, 255, 0, 128);  // Semi-transparent yellow
+}
+
+sf::Color ChessGUI::getValidMoveColor() {
+    return sf::Color(0, 255, 0, 64);     // Semi-transparent green
 }
 
 void ChessGUI::updateGameStatus() {
-    if (gameMode) {
-        gameStatusText.setString("Multiplayer Mode");
-        turnIndicator.setString(whiteTurn ? "White's Turn" : "Black's Turn");
+    Board board = game.getBoard();
+
+    // Update turn text
+    if (game.isWhiteTurn()) {
+        turnText.setString("White's Turn");
     }
     else {
-        gameStatusText.setString("vs AI (Bird)");
-        if (isAIWhite) {
-            turnIndicator.setString(whiteTurn ? "AI's Turn" : "Your Turn");
-        }
-        else {
-            turnIndicator.setString(whiteTurn ? "Your Turn" : "AI's Turn");
-        }
+        turnText.setString("Black's Turn");
     }
 
-    if (gameOver) {
-        turnIndicator.setString(gameResult);
+    // Check game state
+    if (board.isCheckmate(!game.isWhiteTurn())) {
+        statusText.setString(game.isWhiteTurn() ? "Black Wins by Checkmate!" : "White Wins by Checkmate!");
+        gameOver = true;
     }
-}
+    else if (board.isStalemate(!game.isWhiteTurn())) {
+        statusText.setString("Stalemate - Draw!");
+        gameOver = true;
+    }
+    else if (board.isInCheck(!game.isWhiteTurn())) {
+        statusText.setString(game.isWhiteTurn() ? "White in Check!" : "Black in Check!");
+    }
+    else {
+        statusText.setString("Game in Progress");
+    }
 
-void ChessGUI::addMoveToHistory(const std::string& move) {
-    moveHistory.push_back(move);
-    if (moveHistory.size() > 100) { // Limit history size
-        moveHistory.erase(moveHistory.begin());
-    }
+    // Update mode text
+    modeText.setString(vsAI ? "vs AI" : "vs Human");
 }
 
 void ChessGUI::resetGame() {
-    game = Game(); // Reset the game
-    gameOver = false;
-    gameResult = "";
-    whiteTurn = true;
+    game = Game();
     pieceSelected = false;
+    selectedRow = -1;
+    selectedCol = -1;
+    gameOver = false;
     validMoves.clear();
-    moveHistory.clear();
-    historyScrollOffset = 0;
     updateGameStatus();
 }
 
-void ChessGUI::makeAIMove() {
-    if (!gameOver) {
-        std::string bestMove = game.findBestMove(isAIWhite);
-        if (!bestMove.empty()) {
-            addMoveToHistory("AI: " + bestMove);
-            whiteTurn = !whiteTurn; // Switch turns after AI move
-        }
-    }
-}
-
-void ChessGUI::checkGameEnd() {
-    Board board = game.getBoard();
-
-    // Check for checkmate
-    if (board.isCheckmate(true)) {
-        gameResult = "Black wins by checkmate!";
-        gameOver = true;
-    }
-    else if (board.isCheckmate(false)) {
-        gameResult = "White wins by checkmate!";
-        gameOver = true;
-    }
-    // Check for stalemate
-    else if (board.isStalemate(true) || board.isStalemate(false)) {
-        gameResult = "Stalemate - Draw!";
-        gameOver = true;
-    }
-    // Check for insufficient material
-    else if (board.insufficientMaterialCheck()) {
-        gameResult = "Draw - Insufficient material!";
-        gameOver = true;
-    }
-}
-
-bool ChessGUI::loadPieceTextures() {
-    std::vector<std::pair<char, bool>> pieces = {
-        {'k', false}, {'q', false}, {'r', false}, {'b', false}, {'n', false}, {'p', false},
-        {'K', true},  {'Q', true},  {'R', true},  {'B', true},  {'N', true},  {'P', true}
-    };
-
-    for (const auto& [piece, isWhite] : pieces) {
-        std::string filename = getPieceFilename(piece, isWhite);
-        std::string key = std::string(1, piece) + (isWhite ? "w" : "b");
-
-        if (!pieceTextures[key].loadFromFile(filename)) {
-            std::cerr << "Failed to load " << filename << std::endl;
-            return false;
-        }
-
-        pieceSprites[key].setTexture(pieceTextures[key]);
-
-        // Scale the sprite to fit the square
-        sf::Vector2u textureSize = pieceTextures[key].getSize();
-        float scaleX = static_cast<float>(SQUARE_SIZE) / textureSize.x;
-        float scaleY = static_cast<float>(SQUARE_SIZE) / textureSize.y;
-        pieceSprites[key].setScale(sf::Vector2f(scaleX, scaleY));
-    }
-
-    return true;
-}
-
-std::string ChessGUI::getPieceFilename(char piece, bool isWhite) {
-    char color = isWhite ? 'w' : 'b';
-    char pieceChar = std::tolower(piece);
-
-    return std::string(1, color) + std::string(1, pieceChar) + ".png";
-}
-
-sf::Sprite& ChessGUI::getPieceSprite(char piece, bool isWhite) {
-    std::string key = std::string(1, piece) + (isWhite ? "w" : "b");
-    return pieceSprites[key];
+void ChessGUI::toggleMode() {
+    vsAI = !vsAI;
+    aiIsWhite = false;  // AI plays black by default
+    resetGame();
 }

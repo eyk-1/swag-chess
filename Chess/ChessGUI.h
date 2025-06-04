@@ -2,98 +2,86 @@
 #include <SFML/Graphics.hpp>
 #include "Game.h"
 #include "Board.h"
-#include "Piece.h"
-#include <vector>
+#include <unordered_map>
 #include <string>
-#include <map>
 
 class ChessGUI {
 private:
+    static sf::Font loadFont() {
+        sf::Font font;
+        font.openFromFile("arial.ttf"); // Just try to load, handle errors elsewhere
+        return font;
+    }
     sf::RenderWindow window;
-    sf::Font font;
     Game game;
+    sf::Font font;
 
     // Board display
-    static const int BOARD_SIZE = 480;
-    static const int SQUARE_SIZE = 60;
-    static const int BOARD_OFFSET_X = 50;
-    static const int BOARD_OFFSET_Y = 50;
-    static const int SIDEBAR_WIDTH = 300;
-
-    // Colors
-    sf::Color lightSquareColor = sf::Color(240, 217, 181);
-    sf::Color darkSquareColor = sf::Color(181, 136, 99);
-    sf::Color highlightColor = sf::Color(255, 255, 0, 100);
-    sf::Color moveHighlight = sf::Color(0, 255, 0, 100);
-    sf::Color checkHighlight = sf::Color(255, 0, 0, 150);
-
-    // Game state
-    bool gameMode; // true for multiplayer, false for AI
-    bool isAIWhite;
-    bool whiteTurn;
-    int selectedRow, selectedCol;
-    bool pieceSelected;
-    std::vector<std::pair<int, int>> validMoves;
-    bool gameOver;
-    std::string gameResult;
-
-    // Move history display
-    std::vector<std::string> moveHistory;
-    int historyScrollOffset;
-
-    // UI Elements
-    sf::RectangleShape boardBackground;
-    sf::RectangleShape sidebar;
-    sf::Text gameStatusText;
-    sf::Text turnIndicator;
-    sf::Text moveHistoryTitle;
-    sf::RectangleShape newGameButton;
-    sf::Text newGameText;
-    sf::RectangleShape exitButton;
-    sf::Text exitText;
+    static const int BOARD_SIZE = 640;
+    static const int SQUARE_SIZE = 80;
+    static const int BOARD_OFFSET_X = 80;
+    static const int BOARD_OFFSET_Y = 80;
 
     // Piece textures
-    std::map<std::string, sf::Texture> pieceTextures;
-    std::map<std::string, sf::Sprite> pieceSprites;
+    std::unordered_map<std::string, sf::Texture> pieceTextures;
+
+    // Game state
+    bool pieceSelected;
+    int selectedRow, selectedCol;
+    bool gameOver;
+    bool vsAI;
+    bool aiIsWhite;
+
+    // Visual feedback
+    sf::RectangleShape highlightSquare;
+    std::vector<sf::Vector2i> validMoves;
+
+    // UI Elements
+    sf::Text statusText;
+    sf::Text turnText;
+    sf::RectangleShape newGameButton;
+    sf::Text newGameText;
+    sf::RectangleShape modeButton;
+    sf::Text modeText;
 
 public:
-    ChessGUI(bool multiplayer);
+    ChessGUI(bool playVsAI = false, bool aiPlaysWhite = false);
     ~ChessGUI();
 
     bool initialize();
     void run();
 
 private:
+    bool loadPieceTextures();
     void handleEvents();
     void update();
     void render();
 
-    // Event handling
-    void handleMouseClick(int x, int y);
-    void handleBoardClick(int row, int col);
-    void handleUIClick(int x, int y);
+    // Board interaction
+    sf::Vector2i getBoardPosition(sf::Vector2i mousePos);
+    bool isValidBoardPosition(sf::Vector2i pos);
+    void selectPiece(int row, int col);
+    void movePiece(int toRow, int toCol);
+    void clearSelection();
+
+    // AI handling
+    void handleAIMove();
 
     // Drawing functions
     void drawBoard();
     void drawPieces();
     void drawHighlights();
-    void drawSidebar();
-    void drawMoveHistory();
-    void drawGameStatus();
     void drawUI();
 
     // Utility functions
-    std::pair<int, int> pixelToSquare(int x, int y);
-    std::pair<int, int> squareToPixel(int row, int col);
-    void updateValidMoves();
-    void updateGameStatus();
-    void addMoveToHistory(const std::string& move);
-    void resetGame();
-    void makeAIMove();
-    void checkGameEnd();
+    std::string getPieceTextureKey(Piece* piece);
+    sf::Color getLightSquareColor();
+    sf::Color getDarkSquareColor();
+    sf::Color getHighlightColor();
+    sf::Color getValidMoveColor();
 
-    // Piece management
-    bool loadPieceTextures();
-    std::string getPieceFilename(char piece, bool isWhite);
-    sf::Sprite& getPieceSprite(char piece, bool isWhite);
+    // Game state
+    void updateGameStatus();
+    void resetGame();
+    void toggleMode();
 };
