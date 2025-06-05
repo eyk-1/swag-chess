@@ -253,25 +253,109 @@ void ChessGUI::clearSelection() {
     validMoves.clear();
 }
 
+// In ChessGUI.cpp, replace the handleAIMove() function with this fixed version:
+
 void ChessGUI::handleAIMove() {
     std::string bestMove = game.findBestMove(aiIsWhite);
 
-    if (!bestMove.empty() && bestMove.length() >= 4) {
-        // Parse algebraic notation (e.g., "e2e4")
-        int fromCol = bestMove[0] - 'a';
-        int fromRow = 8 - (bestMove[1] - '0'); // Convert to array index
-        int toCol = bestMove[2] - 'a';
-        int toRow = 8 - (bestMove[3] - '0'); // Convert to array index
+    if (bestMove.empty()) {
+        std::cout << "AI couldn't find a valid move!" << std::endl;
+        return;
+    }
 
-        if (fromCol >= 0 && fromCol < 8 && fromRow >= 0 && fromRow < 8 &&
-            toCol >= 0 && toCol < 8 && toRow >= 0 && toRow < 8) {
+    std::cout << "AI considering move: " << bestMove << std::endl;
 
-            Board& boardRef = game.getBoard();
-            if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
-                game.toggleTurn();
-                updateGameStatus();
-            }
+    // Handle castling moves first
+    if (bestMove == "O-O" || bestMove == "O-O-O") {
+        int fromRow = aiIsWhite ? 7 : 0;
+        int fromCol = 4; // King starts at e-file
+        int toRow = fromRow;
+        int toCol = (bestMove == "O-O") ? 6 : 2; // Kingside or queenside
+
+        Board& boardRef = game.getBoard();
+
+        // Create move record for castling
+        Move move;
+        move.player = aiIsWhite ? "White" : "Black";
+        move.fromCoord = string(1, 'A' + fromCol) + to_string(8 - fromRow);
+        move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+        move.pieceSymbol = 'K';
+        move.isKingsideCastle = (bestMove == "O-O");
+        move.isQueensideCastle = (bestMove == "O-O-O");
+
+        if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
+            boardRef.setLastMove(move);
+            game.toggleTurn();
+            updateGameStatus();
+            std::cout << "AI castled: " << bestMove << std::endl;
         }
+        return;
+    }
+
+    // Parse regular moves - handle both "A2 E4" and "a2e4" formats
+    int fromCol, fromRow, toCol, toRow;
+
+    if (bestMove.length() >= 5 && bestMove[2] == ' ') {
+        // Format: "A2 E4" (with space)
+        fromCol = toupper(bestMove[0]) - 'A';
+        fromRow = 8 - (bestMove[1] - '0');
+        toCol = toupper(bestMove[3]) - 'A';
+        toRow = 8 - (bestMove[4] - '0');
+    }
+    else if (bestMove.length() >= 4) {
+        // Format: "a2e4" (no space)
+        fromCol = tolower(bestMove[0]) - 'a';
+        fromRow = 8 - (bestMove[1] - '0');
+        toCol = tolower(bestMove[2]) - 'a';
+        toRow = 8 - (bestMove[3] - '0');
+    }
+    else {
+        std::cout << "Invalid AI move format: " << bestMove << std::endl;
+        return;
+    }
+
+    // Validate coordinates
+    if (fromCol < 0 || fromCol >= 8 || fromRow < 0 || fromRow >= 8 ||
+        toCol < 0 || toCol >= 8 || toRow < 0 || toRow >= 8) {
+        std::cout << "AI move coordinates out of bounds: " << bestMove << std::endl;
+        return;
+    }
+
+    Board& boardRef = game.getBoard();
+    Piece* piece = boardRef.getPiece(fromRow, fromCol);
+
+    if (!piece) {
+        std::cout << "No piece at AI's from position!" << std::endl;
+        return;
+    }
+
+    if (piece->isWhitePiece() != aiIsWhite) {
+        std::cout << "AI trying to move opponent's piece!" << std::endl;
+        return;
+    }
+
+    // Create proper move record
+    Move move;
+    move.player = aiIsWhite ? "White" : "Black";
+    move.fromCoord = string(1, 'A' + fromCol) + to_string(8 - fromRow);
+    move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+    move.pieceSymbol = piece->getSymbol();
+
+    // Check for capture
+    Piece* capturedPiece = boardRef.getPiece(toRow, toCol);
+    move.isCapture = (capturedPiece != nullptr);
+
+    // Attempt the move
+    if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
+        // Set the move for game history and en passant tracking
+        boardRef.setLastMove(move);
+        game.toggleTurn();
+        updateGameStatus();
+
+        std::cout << "AI moved from " << move.fromCoord << " to " << move.toCoord << std::endl;
+    }
+    else {
+        std::cout << "AI move was invalid: " << bestMove << std::endl;
     }
 }
 

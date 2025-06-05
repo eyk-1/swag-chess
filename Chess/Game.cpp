@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <string>
+#include <vector>
+#include <algorithm>
 using namespace std;
 // Piece-square tables (from white's perspective)
 static const int pawnTable[8][8] = {
@@ -105,13 +107,17 @@ void Game::printFEN(const vector<string>& fenMoves) {
     std::cout << "\n";
 }
 int Game::evaluateBoard(Board& b, bool aiIsWhite) {
-    if (b.isCheckmate(!aiIsWhite)) return 100000;
-    if (b.isCheckmate(aiIsWhite))  return -100000;
+    // Check for terminal positions first
+    if (b.isCheckmate(!aiIsWhite)) return 100000;  // AI wins
+    if (b.isCheckmate(aiIsWhite))  return -100000; // AI loses
+    if (b.isStalemate(aiIsWhite) || b.isStalemate(!aiIsWhite)) return 0; // Draw
 
-
-    int score = 0, aiCenter = 0, oppCenter = 0;
+    int score = 0;
+    int aiMobility = 0, oppMobility = 0;
+    int aiCenter = 0, oppCenter = 0;
     int aiDev = 0, oppDev = 0;
     bool aiCastled = false, oppCastled = false;
+    int aiKingSafety = 0, oppKingSafety = 0;
 
     const int CenterSquares[4][2] = { {3, 3}, {3, 4}, {4, 3}, {4, 4} };
 
@@ -124,17 +130,39 @@ int Game::evaluateBoard(Board& b, bool aiIsWhite) {
             bool isAI = (isWhite == aiIsWhite);
             char symbol = toupper(piece->getSymbol());
 
+            // Material evaluation with piece-square tables
             int base = 0, pst = 0;
             switch (symbol) {
-            case 'P': base = 100; pst = isWhite ? pawnTable[row][col] : pawnTable[7 - row][col]; break;
-            case 'N': base = 300; pst = isWhite ? knightTable[row][col] : knightTable[7 - row][col]; break;
-            case 'B': base = 310; pst = isWhite ? bishopTable[row][col] : bishopTable[7 - row][col]; break;
-            case 'R': base = 500; pst = isWhite ? rookTable[row][col] : rookTable[7 - row][col]; break;
-            case 'Q': base = 900; pst = isWhite ? queenTable[row][col] : queenTable[7 - row][col]; break;
+            case 'P':
+                base = 100;
+                pst = isWhite ? pawnTable[row][col] : pawnTable[7 - row][col];
+                break;
+            case 'N':
+                base = 320;
+                pst = isWhite ? knightTable[row][col] : knightTable[7 - row][col];
+                break;
+            case 'B':
+                base = 330;
+                pst = isWhite ? bishopTable[row][col] : bishopTable[7 - row][col];
+                break;
+            case 'R':
+                base = 500;
+                pst = isWhite ? rookTable[row][col] : rookTable[7 - row][col];
+                break;
+            case 'Q':
+                base = 900;
+                pst = isWhite ? queenTable[row][col] : queenTable[7 - row][col];
+                break;
             case 'K':
-                base = 10000; pst = isWhite ? kingTable[row][col] : kingTable[7 - row][col];
+                base = 10000;
+                pst = isWhite ? kingTable[row][col] : kingTable[7 - row][col];
+                // Check if king has castled
                 if ((row == 0 || row == 7) && (col == 2 || col == 6)) {
                     isAI ? aiCastled = true : oppCastled = true;
+                }
+                // King safety - penalty for being in center early
+                if (row >= 2 && row <= 5 && col >= 2 && col <= 5) {
+                    isAI ? aiKingSafety -= 20 : oppKingSafety -= 20;
                 }
                 break;
             }
@@ -142,24 +170,45 @@ int Game::evaluateBoard(Board& b, bool aiIsWhite) {
             int value = base + pst;
             score += isAI ? value : -value;
 
-            for (const auto& sq : CenterSquares) {
-                if (piece->isValidMove(row, col, sq[0], sq[1], &b)) {
-                    isAI ? aiCenter++ : oppCenter++;
+            // Count mobility (valid moves)
+            int moveCount = 0;
+            for (int r = 0; r < 8; r++) {
+                for (int c = 0; c < 8; c++) {
+                    if (piece->isValidMove(row, col, r, c, &b)) {
+                        moveCount++;
+                        // Bonus for controlling center squares
+                        for (const auto& sq : CenterSquares) {
+                            if (r == sq[0] && c == sq[1]) {
+                                isAI ? aiCenter++ : oppCenter++;
+                            }
+                        }
+                    }
                 }
             }
+            isAI ? aiMobility += moveCount : oppMobility += moveCount;
 
+            // Development bonus for pieces off back rank
             if (symbol != 'P' && symbol != 'K') {
-                if ((isWhite && row < 7) || (!isWhite && row > 0))
+                if ((isWhite && row < 7) || (!isWhite && row > 0)) {
                     isAI ? aiDev++ : oppDev++;
+                }
             }
         }
     }
 
-    score += (aiCenter - oppCenter) * 15;
-    score += (aiDev - oppDev) * 5;
-    score += (b.isInCheck(!aiIsWhite) ? 25 : 0);
-    if (aiCastled) score += 40;
-    if (oppCastled) score -= 40;
+    // Strategic bonuses
+    score += (aiMobility - oppMobility) * 2;        // Mobility is important
+    score += (aiCenter - oppCenter) * 15;           // Center control
+    score += (aiDev - oppDev) * 10;                 // Development
+    score += aiKingSafety - oppKingSafety;          // King safety
+
+    // Check bonuses
+    if (b.isInCheck(!aiIsWhite)) score += 25;      // Opponent in check
+    if (b.isInCheck(aiIsWhite)) score -= 25;       // AI in check
+
+    // Castling bonuses
+    if (aiCastled) score += 50;
+    if (oppCastled) score -= 50;
 
     return score;
 }
@@ -258,6 +307,9 @@ std::string Game::findBestMove(bool aiIsWhite) {
     minimaxNodeCount = 0;
     int bestScore = std::numeric_limits<int>::min();
     std::string bestMove;
+
+    std::vector<std::pair<std::string, int>> moveScores; // For debugging
+
     for (int fromRow = 0; fromRow < 8; ++fromRow) {
         for (int fromCol = 0; fromCol < 8; ++fromCol) {
             Piece* piece = board.getPiece(fromRow, fromCol);
@@ -270,32 +322,43 @@ std::string Game::findBestMove(bool aiIsWhite) {
                                 int score = minimax(copy, 3, std::numeric_limits<int>::min(),
                                     std::numeric_limits<int>::max(), false, aiIsWhite);
 
-                                // Add castling bonus
+                                // Add strategic bonuses
                                 if (dynamic_cast<King*>(piece) && abs(fromCol - toCol) == 2) {
-                                    score += 50; // Encourages castling
+                                    score += 50; // Castling bonus
                                 }
+
+                                // Bonus for capturing pieces
+                                Piece* capturedPiece = board.getPiece(toRow, toCol);
+                                if (capturedPiece) {
+                                    score += 20; // Capture bonus
+                                }
+
+                                // Bonus for center control
+                                if ((toRow == 3 || toRow == 4) && (toCol == 3 || toCol == 4)) {
+                                    score += 10;
+                                }
+
+                                std::string moveNotation;
+
+                                // Handle castling
+                                if (dynamic_cast<King*>(piece) && abs(fromCol - toCol) == 2) {
+                                    moveNotation = (toCol > fromCol) ? "O-O" : "O-O-O";
+                                }
+                                else {
+                                    // Standard algebraic notation (lowercase, no spaces)
+                                    moveNotation = std::string{
+                                        static_cast<char>('a' + fromCol),
+                                        static_cast<char>('1' + (7 - fromRow)),
+                                        static_cast<char>('a' + toCol),
+                                        static_cast<char>('1' + (7 - toRow))
+                                    };
+                                }
+
+                                moveScores.push_back({ moveNotation, score });
 
                                 if (score > bestScore) {
                                     bestScore = score;
-                                    // Convert to castling notation if applicable
-                                    if (dynamic_cast<King*>(piece) && abs(fromCol - toCol) == 2) {
-                                        bestMove = (toCol > fromCol) ? "O-O" : "O-O-O";
-                                        std::cout << "AI Move: " << bestMove
-                                            << " Parsed as: " << fromRow << "," << fromCol
-                                            << " to " << toRow << "," << toCol << std::endl;
-                                    }
-                                    else {
-                                        bestMove = std::string{
-                                            static_cast<char>('A' + fromCol),
-                                            static_cast<char>('8' - fromRow),
-                                            ' ',
-                                            static_cast<char>('A' + toCol),
-                                            static_cast<char>('8' - toRow)
-                                        };
-                                        std::cout << "AI Move: " << bestMove
-                                            << " Parsed as: " << fromRow << "," << fromCol
-                                            << " to " << toRow << "," << toCol << std::endl;
-                                    }
+                                    bestMove = moveNotation;
                                 }
                             }
                         }
@@ -304,11 +367,20 @@ std::string Game::findBestMove(bool aiIsWhite) {
             }
         }
     }
-    std::cout << "[Minimax Stats] Nodes: " << minimaxNodeCount << endl;
+
+    // Debug output - show top 5 moves considered
+    std::sort(moveScores.rbegin(), moveScores.rend(),
+        [](const auto& a, const auto& b) { return a.second < b.second; });
+
+    std::cout << "[AI Analysis] Top moves considered:" << std::endl;
+    for (int i = 0; i < std::min(5, (int)moveScores.size()); i++) {
+        std::cout << "  " << moveScores[i].first << " (score: " << moveScores[i].second << ")" << std::endl;
+    }
+    std::cout << "[AI Decision] Best move: " << bestMove << " (score: " << bestScore << ")" << std::endl;
+    std::cout << "[Minimax Stats] Nodes evaluated: " << minimaxNodeCount << std::endl;
 
     return bestMove;
 }
-
 
 void Game::start() {
     std::string mode;
