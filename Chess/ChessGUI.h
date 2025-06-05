@@ -44,6 +44,7 @@ private:
     sf::RectangleShape modeButton;
     sf::Text modeText;
 
+
 public:
     ChessGUI(bool playVsAI = false, bool aiPlaysWhite = false);
     ~ChessGUI();

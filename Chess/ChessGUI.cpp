@@ -75,6 +75,9 @@ bool ChessGUI::initialize() {
     // Initialize game
     game = Game();
     updateGameStatus();
+    if (vsAI && aiIsWhite) {
+        handleAIMove();
+    }
     std::cout << "Game initialized" << std::endl;
     return true;
 }
@@ -182,7 +185,7 @@ bool ChessGUI::isValidBoardPosition(sf::Vector2i pos) {
 }
 
 void ChessGUI::selectPiece(int row, int col) {
-    Board board = game.getBoard();
+    Board& board = game.getBoard(); 
     Piece* piece = board.getPiece(row, col);
 
     if (piece && piece->isWhitePiece() == game.isWhiteTurn()) {
@@ -190,7 +193,7 @@ void ChessGUI::selectPiece(int row, int col) {
         selectedRow = row;
         selectedCol = col;
 
-        // Calculate valid moves (simplified - you might want to implement this properly)
+        // Calculate valid moves
         validMoves.clear();
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
@@ -204,15 +207,40 @@ void ChessGUI::selectPiece(int row, int col) {
 
 void ChessGUI::movePiece(int toRow, int toCol) {
     if (pieceSelected) {
-        // Create a copy of the board to work with
-        Board& boardRef = game.getBoard(); // Get reference to actual board
+        Board& boardRef = game.getBoard();
+
+        // Store the move details before making the move
+        Move move;
+        move.fromCoord = string(1, 'A' + selectedCol) + to_string(8 - selectedRow);
+        move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+        move.player = game.isWhiteTurn() ? "White" : "Black";
+
+        Piece* piece = boardRef.getPiece(selectedRow, selectedCol);
+        if (piece) {
+            move.pieceSymbol = piece->getSymbol();
+        }
+
         if (boardRef.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
+            // IMPORTANT: Set the last move for en passant tracking
+            boardRef.setLastMove(move);
+
             // Move was successful - toggle turn
-            game.toggleTurn(); // You'll need to add this method to Game class
+            game.toggleTurn();
+
+            // Force immediate GUI update
+            render();
+
+            // Clear selection after rendering
             clearSelection();
+
+            // If playing against AI and it's now AI's turn, make it move immediately
+            if (vsAI && game.isWhiteTurn() == aiIsWhite) {
+                handleAIMove();
+                render(); // Update again after AI move
+            }
         }
         else {
-            // Invalid move, keep selection or clear it
+            // Invalid move
             clearSelection();
         }
     }
@@ -226,33 +254,24 @@ void ChessGUI::clearSelection() {
 }
 
 void ChessGUI::handleAIMove() {
-    static sf::Clock aiThinkTime;
+    std::string bestMove = game.findBestMove(aiIsWhite);
 
-    // Add a small delay so AI doesn't move instantly
-    if (aiThinkTime.getElapsedTime().asSeconds() > 1.0f) {
-        std::string bestMove = game.findBestMove(aiIsWhite);
+    if (!bestMove.empty() && bestMove.length() >= 4) {
+        // Parse algebraic notation (e.g., "e2e4")
+        int fromCol = bestMove[0] - 'a';
+        int fromRow = 8 - (bestMove[1] - '0'); // Convert to array index
+        int toCol = bestMove[2] - 'a';
+        int toRow = 8 - (bestMove[3] - '0'); // Convert to array index
 
-        if (!bestMove.empty()) {
-            // Parse the move string and execute it
-            // Assuming bestMove format is something like "e2e4"
-            if (bestMove.length() >= 4) {
-                int fromCol = bestMove[0] - 'a';
-                int fromRow = bestMove[1] - '1';
-                int toCol = bestMove[2] - 'a';
-                int toRow = bestMove[3] - '1';
+        if (fromCol >= 0 && fromCol < 8 && fromRow >= 0 && fromRow < 8 &&
+            toCol >= 0 && toCol < 8 && toRow >= 0 && toRow < 8) {
 
-                // Convert to 0-7 range and flip for display
-                fromRow = 7 - fromRow;
-                toRow = 7 - toRow;
-
-                Board& boardRef = game.getBoard();
-                if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
-                    game.toggleTurn(); // Toggle turn after AI move
-                }
+            Board& boardRef = game.getBoard();
+            if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
+                game.toggleTurn();
+                updateGameStatus();
             }
         }
-
-        aiThinkTime.restart();
     }
 }
 
@@ -277,7 +296,7 @@ void ChessGUI::drawBoard() {
 }
 
 void ChessGUI::drawPieces() {
-    Board board = game.getBoard();
+    Board& board = game.getBoard(); // Reference, not copy!
 
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {

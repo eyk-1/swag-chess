@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <string>
+using namespace std;
 // Piece-square tables (from white's perspective)
 static const int pawnTable[8][8] = {
     { 0,  0,  0,  0,  0,  0,  0,  0},
@@ -103,52 +104,6 @@ void Game::printFEN(const vector<string>& fenMoves) {
 
     std::cout << "\n";
 }
-
-string Game::findBestMove(bool isAIWhite) {
-    int bestScore = isAIWhite ? -10000 : 10000;
-    string bestMove = "";
-
-    // Search all possible moves for the AI
-    for (int fromRow = 0; fromRow < 8; fromRow++) {
-        for (int fromCol = 0; fromCol < 8; fromCol++) {
-            Piece* piece = board.getPiece(fromRow, fromCol);
-            if (piece && piece->isWhitePiece() == isAIWhite) {
-                // Try all possible destination squares
-                for (int toRow = 0; toRow < 8; toRow++) {
-                    for (int toCol = 0; toCol < 8; toCol++) {
-                        if (piece->isValidMove(fromRow, fromCol, toRow, toCol, &board)) {
-                            // Create a copy of the board to test the move
-                            Board testBoard = board;
-                            if (testBoard.movePiece(fromRow, fromCol, toRow, toCol, isAIWhite)) {
-                                // Make sure this move doesn't leave our king in check
-                                if (!testBoard.isInCheck(isAIWhite)) {
-                                    // Evaluate this position
-                                    int score = evaluateBoard(testBoard, isAIWhite);
-
-                                    // Check if this is better than our current best
-                                    if ((isAIWhite && score > bestScore) || (!isAIWhite && score < bestScore)) {
-                                        bestScore = score;
-                                        // Convert to algebraic notation
-                                        char fromFile = 'a' + fromCol;
-                                        char fromRank = '1' + (7 - fromRow); // Convert to chess notation
-                                        char toFile = 'a' + toCol;
-                                        char toRank = '1' + (7 - toRow);
-
-                                        bestMove = string(1, fromFile) + string(1, fromRank) +
-                                            string(1, toFile) + string(1, toRank);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return bestMove;
-}
-
 int Game::evaluateBoard(Board& b, bool aiIsWhite) {
     if (b.isCheckmate(!aiIsWhite)) return 100000;
     if (b.isCheckmate(aiIsWhite))  return -100000;
@@ -208,7 +163,6 @@ int Game::evaluateBoard(Board& b, bool aiIsWhite) {
 
     return score;
 }
-
 
 void Game::AmbiguityCheck(Board& board, bool isWhiteTurn, int fromRow, int fromCol, int toRow, int toCol)
 {
@@ -298,6 +252,61 @@ int Game::minimax(Board& b, int depth, int alpha, int beta, bool maximizing, boo
         }
         return minEval;
     }
+}
+
+std::string Game::findBestMove(bool aiIsWhite) {
+    minimaxNodeCount = 0;
+    int bestScore = std::numeric_limits<int>::min();
+    std::string bestMove;
+    for (int fromRow = 0; fromRow < 8; ++fromRow) {
+        for (int fromCol = 0; fromCol < 8; ++fromCol) {
+            Piece* piece = board.getPiece(fromRow, fromCol);
+            if (piece && piece->isWhitePiece() == aiIsWhite) {
+                for (int toRow = 0; toRow < 8; ++toRow) {
+                    for (int toCol = 0; toCol < 8; ++toCol) {
+                        if (piece->isValidMove(fromRow, fromCol, toRow, toCol, &board)) {
+                            Board copy = board;
+                            if (copy.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
+                                int score = minimax(copy, 3, std::numeric_limits<int>::min(),
+                                    std::numeric_limits<int>::max(), false, aiIsWhite);
+
+                                // Add castling bonus
+                                if (dynamic_cast<King*>(piece) && abs(fromCol - toCol) == 2) {
+                                    score += 50; // Encourages castling
+                                }
+
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    // Convert to castling notation if applicable
+                                    if (dynamic_cast<King*>(piece) && abs(fromCol - toCol) == 2) {
+                                        bestMove = (toCol > fromCol) ? "O-O" : "O-O-O";
+                                        std::cout << "AI Move: " << bestMove
+                                            << " Parsed as: " << fromRow << "," << fromCol
+                                            << " to " << toRow << "," << toCol << std::endl;
+                                    }
+                                    else {
+                                        bestMove = std::string{
+                                            static_cast<char>('A' + fromCol),
+                                            static_cast<char>('8' - fromRow),
+                                            ' ',
+                                            static_cast<char>('A' + toCol),
+                                            static_cast<char>('8' - toRow)
+                                        };
+                                        std::cout << "AI Move: " << bestMove
+                                            << " Parsed as: " << fromRow << "," << fromCol
+                                            << " to " << toRow << "," << toCol << std::endl;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "[Minimax Stats] Nodes: " << minimaxNodeCount << endl;
+
+    return bestMove;
 }
 
 
