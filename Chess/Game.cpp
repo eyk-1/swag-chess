@@ -367,16 +367,7 @@ std::string Game::findBestMove(bool aiIsWhite) {
             }
         }
     }
-
-    // Debug output - show top 5 moves considered
-    std::sort(moveScores.rbegin(), moveScores.rend(),
-        [](const auto& a, const auto& b) { return a.second < b.second; });
-
-    std::cout << "[AI Analysis] Top moves considered:" << std::endl;
-    for (int i = 0; i < std::min(5, (int)moveScores.size()); i++) {
-        std::cout << "  " << moveScores[i].first << " (score: " << moveScores[i].second << ")" << std::endl;
-    }
-    std::cout << "[AI Decision] Best move: " << bestMove << " (score: " << bestScore << ")" << std::endl;
+    std::cout << "Bird played: " << bestMove << " (score: " << bestScore << ")" << std::endl;
     std::cout << "[Minimax Stats] Nodes evaluated: " << minimaxNodeCount << std::endl;
 
     return bestMove;

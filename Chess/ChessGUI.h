@@ -51,13 +51,20 @@ public:
 
     bool initialize();
     void run();
+    bool checkThreefoldRepetition();
+    bool checkFiftyMoveRule();
+    void updateDrawConditions();
 
 private:
+    bool aiThinking;
+    sf::Time aiThinkTimer;
+    std::vector<std::string> positionHistory;  // Track position history
+    int fiftyMoveCounter;                      // Track 50-move rule
     bool loadPieceTextures();
     void handleEvents();
     void update();
     void render();
-
+    void update(sf::Time deltaTime);
     // Board interaction
     sf::Vector2i getBoardPosition(sf::Vector2i mousePos);
     bool isValidBoardPosition(sf::Vector2i pos);

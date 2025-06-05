@@ -1,12 +1,15 @@
 #include "King.h"
 #include "Board.h"
 #include <cmath>
+
 King::King(bool isWhite) : Piece(isWhite) {
     symbol = isWhite ? 'K' : 'k';
 }
+
 char King::getSymbol() const {
     return isWhite ? 'K' : 'k';
 }
+
 bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* board) {
     int rowDiff = abs(fromRow - toRow);
     int colDiff = abs(fromCol - toCol);
@@ -16,6 +19,27 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
         Piece* dest = board->getPiece(toRow, toCol);
         if (dest && dest->isWhitePiece() == isWhite) return false;
 
+        // Check if the destination square is adjacent to the opponent's king
+        // Find the opponent's king
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                Piece* piece = board->getPiece(row, col);
+                if (piece && piece->getSymbol() == (isWhite ? 'k' : 'K')) {
+                    // This is the opponent's king
+                    int opponentKingRowDiff = abs(row - toRow);
+                    int opponentKingColDiff = abs(col - toCol);
+
+                    // If our king would be adjacent to opponent's king, it's illegal
+                    if (opponentKingRowDiff <= 1 && opponentKingColDiff <= 1 &&
+                        !(opponentKingRowDiff == 0 && opponentKingColDiff == 0)) {
+                        return false;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Create temporary board to check if our king would be in check
         Board temp = *board;
         temp.setPiece(toRow, toCol, temp.getPiece(fromRow, fromCol));
         temp.setPiece(fromRow, fromCol, nullptr);
@@ -64,4 +88,3 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
 
     return false;
 }
-

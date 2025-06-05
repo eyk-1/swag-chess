@@ -5,7 +5,9 @@
 ChessGUI::ChessGUI(bool playVsAI, bool aiPlaysWhite)
     : window(sf::VideoMode({ 800u, 800u }), "Swag Chess"),
     pieceSelected(false), selectedRow(-1), selectedCol(-1),
-    gameOver(false), vsAI(playVsAI), aiIsWhite(aiPlaysWhite), statusText(font), turnText(font), newGameText(font), modeText(font) {
+    gameOver(false), vsAI(playVsAI), aiIsWhite(aiPlaysWhite),
+    statusText(font), turnText(font), newGameText(font), modeText(font),
+    fiftyMoveCounter(0) {  // Add aiThinking flag
 
     // Initialize highlight square
     highlightSquare.setSize(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
@@ -19,10 +21,47 @@ ChessGUI::ChessGUI(bool playVsAI, bool aiPlaysWhite)
     modeButton.setSize(sf::Vector2f(120, 40));
     modeButton.setPosition(sf::Vector2f(150, 20));
     modeButton.setFillColor(sf::Color(180, 130, 70));
+
+    // Initialize AI thinking timer
+    aiThinkTimer = sf::Time::Zero;
 }
 
 ChessGUI::~ChessGUI() {
     // Destructor
+}
+
+bool ChessGUI::checkThreefoldRepetition() {
+    if (positionHistory.size() < 3) return false;
+
+    // Get current position
+    std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
+
+    // Count occurrences of current position
+    int count = 0;
+    for (const auto& pos : positionHistory) {
+        if (pos == currentPosition) {
+            count++;
+        }
+    }
+
+    // Check if this position has occurred twice before (making this the third time)
+    return count >= 2;
+}
+
+// Add this method to check fifty move rule:
+bool ChessGUI::checkFiftyMoveRule() {
+    return fiftyMoveCounter >= 50;
+}
+
+void ChessGUI::updateDrawConditions() {
+    // Add current position to history
+    std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
+    positionHistory.push_back(currentPosition);
+
+    // Keep position history reasonable size (last 150 positions should be enough)
+    if (positionHistory.size() > 150) {
+        positionHistory.erase(positionHistory.begin());
+    }
 }
 
 bool ChessGUI::initialize() {
@@ -36,13 +75,10 @@ bool ChessGUI::initialize() {
             !font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf") &&
             !font.openFromFile("assets/arial.ttf")) {
             std::cerr << "Could not load any font! Trying to create default font..." << std::endl;
-
-            // Try to use SFML's default font (if available)
-            // If all else fails, we'll still try to continue but text might not display
-            // Create a minimal fallback - this should not crash the program
         }
     }
     std::cout << "Font loaded successfully" << std::endl;
+
     // Setup text elements AFTER font is loaded
     statusText.setFont(font);
     statusText.setCharacterSize(18);
@@ -66,18 +102,24 @@ bool ChessGUI::initialize() {
     modeText.setFillColor(sf::Color::White);
     modeText.setPosition(sf::Vector2f(175, 30));
     std::cout << "Text elements configured" << std::endl;
+
     // Load piece textures
     if (!loadPieceTextures()) {
         std::cerr << "Failed to load piece textures!" << std::endl;
         return false;
     }
     std::cout << "Pieces loaded" << std::endl;
+
     // Initialize game
     game = Game();
     updateGameStatus();
+
+    // Start AI thinking timer if AI goes first
     if (vsAI && aiIsWhite) {
-        handleAIMove();
+        aiThinking = true;
+        aiThinkTimer = sf::Time::Zero;
     }
+
     std::cout << "Game initialized" << std::endl;
     return true;
 }
@@ -103,9 +145,13 @@ bool ChessGUI::loadPieceTextures() {
 }
 
 void ChessGUI::run() {
+    sf::Clock clock;
+
     while (window.isOpen()) {
+        sf::Time deltaTime = clock.restart();
+
         handleEvents();
-        update();
+        update(deltaTime);  // Pass deltaTime to update
         render();
     }
 }
@@ -131,8 +177,8 @@ void ChessGUI::handleEvents() {
                     continue;
                 }
 
-                // Handle board clicks only if it's human's turn
-                if (!gameOver && (!vsAI || (vsAI && game.isWhiteTurn() != aiIsWhite))) {
+                // Handle board clicks only if it's human's turn and AI is not thinking
+                if (!gameOver && !aiThinking && (!vsAI || (vsAI && game.isWhiteTurn() != aiIsWhite))) {
                     sf::Vector2i boardPos = getBoardPosition(mousePos);
 
                     if (isValidBoardPosition(boardPos)) {
@@ -154,12 +200,26 @@ void ChessGUI::handleEvents() {
     }
 }
 
-void ChessGUI::update() {
+void ChessGUI::update(sf::Time deltaTime) {
     updateGameStatus();
 
-    // Handle AI move if it's AI's turn
+    // Handle AI thinking with delay
     if (!gameOver && vsAI && game.isWhiteTurn() == aiIsWhite) {
-        handleAIMove();
+        if (!aiThinking) {
+            // Start AI thinking
+            aiThinking = true;
+            aiThinkTimer = sf::Time::Zero;
+        }
+        else {
+            // Update thinking timer
+            aiThinkTimer += deltaTime;
+
+            // Add a small delay to show the turn change and make it feel more natural
+            if (aiThinkTimer >= sf::milliseconds(500)) {  // 500ms delay
+                handleAIMove();
+                aiThinking = false;
+            }
+        }
     }
 }
 
@@ -185,7 +245,7 @@ bool ChessGUI::isValidBoardPosition(sf::Vector2i pos) {
 }
 
 void ChessGUI::selectPiece(int row, int col) {
-    Board& board = game.getBoard(); 
+    Board& board = game.getBoard();
     Piece* piece = board.getPiece(row, col);
 
     if (piece && piece->isWhitePiece() == game.isWhiteTurn()) {
@@ -216,6 +276,8 @@ void ChessGUI::movePiece(int toRow, int toCol) {
         move.player = game.isWhiteTurn() ? "White" : "Black";
 
         Piece* piece = boardRef.getPiece(selectedRow, selectedCol);
+        Piece* capturedPiece = boardRef.getPiece(toRow, toCol);
+
         if (piece) {
             move.pieceSymbol = piece->getSymbol();
         }
@@ -223,6 +285,20 @@ void ChessGUI::movePiece(int toRow, int toCol) {
         if (boardRef.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
             // IMPORTANT: Set the last move for en passant tracking
             boardRef.setLastMove(move);
+
+            // Update fifty move rule counter
+            bool isPawnMove = (piece && tolower(piece->getSymbol()) == 'p');
+            bool isCapture = (capturedPiece != nullptr);
+
+            if (isPawnMove || isCapture) {
+                fiftyMoveCounter = 0;  // Reset counter
+            }
+            else {
+                fiftyMoveCounter++;
+            }
+
+            // Update position history for threefold repetition
+            updateDrawConditions();
 
             // Move was successful - toggle turn
             game.toggleTurn();
@@ -246,14 +322,13 @@ void ChessGUI::movePiece(int toRow, int toCol) {
     }
 }
 
+
 void ChessGUI::clearSelection() {
     pieceSelected = false;
     selectedRow = -1;
     selectedCol = -1;
     validMoves.clear();
 }
-
-// In ChessGUI.cpp, replace the handleAIMove() function with this fixed version:
 
 void ChessGUI::handleAIMove() {
     std::string bestMove = game.findBestMove(aiIsWhite);
@@ -349,6 +424,21 @@ void ChessGUI::handleAIMove() {
     if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
         // Set the move for game history and en passant tracking
         boardRef.setLastMove(move);
+
+        // Update fifty move rule counter for AI moves
+        bool isPawnMove = (piece && tolower(piece->getSymbol()) == 'p');
+        bool isCapture = (capturedPiece != nullptr);
+
+        if (isPawnMove || isCapture) {
+            fiftyMoveCounter = 0;  // Reset counter
+        }
+        else {
+            fiftyMoveCounter++;
+        }
+
+        // Update position history for threefold repetition
+        updateDrawConditions();
+
         game.toggleTurn();
         updateGameStatus();
 
@@ -358,6 +448,7 @@ void ChessGUI::handleAIMove() {
         std::cout << "AI move was invalid: " << bestMove << std::endl;
     }
 }
+
 
 void ChessGUI::drawBoard() {
     for (int row = 0; row < 8; row++) {
@@ -474,7 +565,7 @@ sf::Color ChessGUI::getValidMoveColor() {
 }
 
 void ChessGUI::updateGameStatus() {
-    Board& board = game.getBoard(); // Get reference, not copy
+    Board& board = game.getBoard();
 
     // Update turn text
     if (game.isWhiteTurn()) {
@@ -482,6 +573,25 @@ void ChessGUI::updateGameStatus() {
     }
     else {
         turnText.setString("Black's Turn");
+    }
+
+    // Check for draws first
+    if (checkThreefoldRepetition()) {
+        statusText.setString("Draw by Threefold Repetition!");
+        gameOver = true;
+        return;
+    }
+
+    if (checkFiftyMoveRule()) {
+        statusText.setString("Draw by Fifty Move Rule!");
+        gameOver = true;
+        return;
+    }
+
+    if (board.insufficientMaterialCheck()) {
+        statusText.setString("Draw by Insufficient Material!");
+        gameOver = true;
+        return;
     }
 
     // Check game state - FIXED: Check if CURRENT player is in checkmate
@@ -503,7 +613,6 @@ void ChessGUI::updateGameStatus() {
     // Update mode text
     modeText.setString(vsAI ? "vs AI" : "vs Human");
 }
-
 void ChessGUI::resetGame() {
     game = Game();
     pieceSelected = false;
@@ -511,7 +620,14 @@ void ChessGUI::resetGame() {
     selectedCol = -1;
     gameOver = false;
     validMoves.clear();
+    positionHistory.clear();      // Clear position history
+    fiftyMoveCounter = 0;         // Reset fifty move counter
     updateGameStatus();
+    // Start AI thinking if AI goes first
+    if (vsAI && aiIsWhite) {
+        aiThinking = true;
+        aiThinkTimer = sf::Time::Zero;
+    }
 }
 
 void ChessGUI::toggleMode() {

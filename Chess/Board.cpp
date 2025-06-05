@@ -418,3 +418,8 @@ using namespace std;
         return fen;
     }
 
+    bool Board::repetitionCheck(bool whiteTurn)
+    {
+        return false;
+    }
+

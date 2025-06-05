@@ -42,4 +42,7 @@ public:
     string getSimplePosition(bool whiteTurn) const;
     bool insufficientMaterialCheck();
     string generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns, int moves) const;
+    bool repetitionCheck(bool whiteTurn);
+
+
 };
