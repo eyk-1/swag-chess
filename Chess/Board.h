@@ -10,6 +10,10 @@ private:
     Move lastMove;
     bool hasLastMove = false;
     string enPassantTarget = "-";
+    bool whiteCanCastleKingside = true;
+    bool whiteCanCastleQueenside = true;
+    bool blackCanCastleKingside = true;
+    bool blackCanCastleQueenside = true;
 
 public:
     Board();
@@ -42,7 +46,16 @@ public:
     string getSimplePosition(bool whiteTurn) const;
     bool insufficientMaterialCheck();
     string generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns, int moves) const;
-    bool repetitionCheck(bool whiteTurn);
+    // Add getter methods for castling rights
+    bool getWhiteCanCastleKingside() const { return whiteCanCastleKingside; }
+    bool getWhiteCanCastleQueenside() const { return whiteCanCastleQueenside; }
+    bool getBlackCanCastleKingside() const { return blackCanCastleKingside; }
+    bool getBlackCanCastleQueenside() const { return blackCanCastleQueenside; }
 
+    // Add setter methods (call these when king or rooks move)
+    void setWhiteCanCastleKingside(bool canCastle) { whiteCanCastleKingside = canCastle; }
+    void setWhiteCanCastleQueenside(bool canCastle) { whiteCanCastleQueenside = canCastle; }
+    void setBlackCanCastleKingside(bool canCastle) { blackCanCastleKingside = canCastle; }
+    void setBlackCanCastleQueenside(bool canCastle) { blackCanCastleQueenside = canCastle; }
 
 };

@@ -31,30 +31,30 @@ ChessGUI::~ChessGUI() {
 }
 
 bool ChessGUI::checkThreefoldRepetition() {
-    if (positionHistory.size() < 3) return false;
+    if (positionHistory.size() < 2) return false; // Need at least 2 previous positions
 
     // Get current position
     std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
 
-    // Count occurrences of current position
-    int count = 0;
+    // Count occurrences of current position in history
+    int count = 1; // Start with 1 for current position
     for (const auto& pos : positionHistory) {
         if (pos == currentPosition) {
             count++;
         }
     }
 
-    // Check if this position has occurred twice before (making this the third time)
-    return count >= 2;
+    // Threefold repetition occurs when position appears 3 or more times
+    return count >= 3;
 }
 
 // Add this method to check fifty move rule:
 bool ChessGUI::checkFiftyMoveRule() {
-    return fiftyMoveCounter >= 50;
+    return fiftyMoveCounter >= 100;
 }
 
 void ChessGUI::updateDrawConditions() {
-    // Add current position to history
+    // Add current position to history BEFORE making the move
     std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
     positionHistory.push_back(currentPosition);
 
@@ -297,11 +297,11 @@ void ChessGUI::movePiece(int toRow, int toCol) {
                 fiftyMoveCounter++;
             }
 
-            // Update position history for threefold repetition
-            updateDrawConditions();
-
-            // Move was successful - toggle turn
+            // Toggle turn FIRST
             game.toggleTurn();
+
+            // THEN update position history with the new game state
+            updateDrawConditions();
 
             // Force immediate GUI update
             render();
@@ -361,6 +361,7 @@ void ChessGUI::handleAIMove() {
         if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
             boardRef.setLastMove(move);
             game.toggleTurn();
+            updateDrawConditions(); // Add position after turn toggle
             updateGameStatus();
             std::cout << "AI castled: " << bestMove << std::endl;
         }
@@ -436,10 +437,8 @@ void ChessGUI::handleAIMove() {
             fiftyMoveCounter++;
         }
 
-        // Update position history for threefold repetition
-        updateDrawConditions();
-
         game.toggleTurn();
+        updateDrawConditions(); // Add position after turn toggle
         updateGameStatus();
 
         std::cout << "AI moved from " << move.fromCoord << " to " << move.toCoord << std::endl;

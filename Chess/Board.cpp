@@ -328,6 +328,7 @@ using namespace std;
     std::string Board::getSimplePosition(bool isWhiteTurn) const {
         std::ostringstream ss;
 
+        // 1. Piece positions
         for (int row = 0; row < 8; ++row) {
             for (int col = 0; col < 8; ++col) {
                 Piece* piece = squares[row][col];
@@ -338,11 +339,26 @@ using namespace std;
             }
         }
 
-        // Include turn info to distinguish between same positions on different turns
+        // 2. Turn info
         ss << (isWhiteTurn ? "w" : "b");
+
+        // 3. En passant target square
+        ss << "|" << enPassantTarget;
+
+        // 4. Castling rights using proper tracking
+        ss << "|";
+        if (whiteCanCastleKingside) ss << "K";
+        if (whiteCanCastleQueenside) ss << "Q";
+        if (blackCanCastleKingside) ss << "k";
+        if (blackCanCastleQueenside) ss << "q";
+        if (!whiteCanCastleKingside && !whiteCanCastleQueenside &&
+            !blackCanCastleKingside && !blackCanCastleQueenside) {
+            ss << "-";
+        }
 
         return ss.str();
     }
+
 
     bool Board::insufficientMaterialCheck() {
         int piececount = 0;
@@ -418,8 +434,4 @@ using namespace std;
         return fen;
     }
 
-    bool Board::repetitionCheck(bool whiteTurn)
-    {
-        return false;
-    }
 
