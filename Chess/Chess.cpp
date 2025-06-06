@@ -38,7 +38,7 @@ int main() {
     aiButton.setFillColor(sf::Color(100, 255, 100));
 
     sf::Text aiText(font);
-    aiText.setString("Play against AI");
+    aiText.setString("Play against Bird");
     aiText.setCharacterSize(24);
     aiText.setPosition({ 200.f, 215.f });
     aiText.setFillColor(sf::Color::Black);
@@ -48,7 +48,7 @@ int main() {
     aiWhiteButton.setFillColor(sf::Color(255, 200, 100));
 
     sf::Text aiWhiteText(font);
-    aiWhiteText.setString("AI plays White");
+    aiWhiteText.setString("Bird plays White");
     aiWhiteText.setCharacterSize(24);
     aiWhiteText.setPosition({ 205.f, 295.f });
     aiWhiteText.setFillColor(sf::Color::Black);
