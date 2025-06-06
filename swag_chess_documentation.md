@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the Swag Chess codebase, a comprehensive chess engine built during the second semester of a CS major at IBA. The game is written in C++ using object-oriented programming principles and supports both console and GUI modes using SFML. 
+This document explains the Swag Chess codebase. The game is written in C++ using object-oriented programming principles and currently supports GUI mode using SFML, with console mode discontinued (maybe). 
 
 **Key Features:**
 - Player vs Player and Player vs AI gameplay modes
@@ -41,13 +41,13 @@ This document explains the Swag Chess codebase, a comprehensive chess engine bui
 | Method | Return Type | Description |
 |--------|-------------|-------------|
 | `Game()` | - | Constructor for Game objects |
-| `start()` | `void` | Main game loop *(console only)* |
+| `start()` *(console only)* | `void` | Main game loop |
 | `findBestMove(bool isAIWhite)` | `string` | AI move selection using minimax |
 | `minimax(...)` | `int` | Recursive minimax with alpha-beta pruning |
 | `evaluateBoard(...)` | `int` | Heuristic board evaluation for AI |
 | `AmbiguityCheck(...)` | `void` | Detects PGN disambiguation needs |
-| `printPGN(...)` | `void` | Outputs game history in PGN *(console only)* |
-| `printFEN(...)` | `void` | Outputs game history in FEN *(console only)* |
+| `printPGN(...)` *(console only)* | `void` | Outputs game history in PGN |
+| `printFEN(...)` *(console only)* | `void` | Outputs game history in FEN |
 | `isWhiteTurn()` | `bool` | Returns current turn state |
 | `toggleTurn()` | `void` | Switches active player |
 | `getBoard()` | `Board&` | Returns reference to game board |
@@ -149,7 +149,7 @@ static const int BOARD_OFFSET_Y = 80;
 | Method | Return Type | Description |
 |--------|-------------|-------------|
 | `initialize()` | `void` | Sets up starting position |
-| `printBoard()` | `void` | Console board display *(console only)* |
+| `printBoard()` *(console only)* | `void` | Console board display |
 | `getPiece(int, int)` | `Piece*` | Retrieves piece at coordinates |
 | `setPiece(int, int, Piece*)` | `void` | Places piece (for simulations) |
 | `movePiece(...)` | `bool` | Validates and executes moves |
@@ -280,19 +280,19 @@ Game (Main Logic)
 
 ---
 
-## Usage Modes
+## Current Implementation
 
-### **Console Mode**
-- Text-based interface
-- Direct algebraic notation input
-- PGN/FEN output to console
-- Full game replay
-
-### **GUI Mode**
+### **GUI Mode (Active)**
 - SFML-based graphical interface
 - Mouse-driven piece selection
 - Visual move highlighting
 - Real-time game state display
+
+### **Console Mode (In Development)**
+- Text-based interface
+- Direct algebraic notation input
+- PGN/FEN output to console
+- Full game replay
 
 ---
 
@@ -343,11 +343,14 @@ The engine has been thoroughly tested through:
 ## Future Development
 
 ### **Planned Improvements:**
+- **Console/GUI Mode Selection:** Not fully confirmed but have thought about it
 - **Enhanced AI:** Better heuristics and opening book integration
 - **Chess960 Support:** Fischer Random Chess with 960 possible starting positions
 - **Performance Optimization:** Transition to bitboard representation and hashing
 - **GUI Enhancement:** Further development of the SFML-based interface
 - **Engine Strength:** Improved evaluation functions for stronger play
+- **Move History:** Show move history beside the board while playing, also have it update as the game goes on and when the game ends, save option
+- **Efficiency:** Switch to bitboards instead of 2D arrays
 
 ### **Current Focus:**
 The Bird Engine continues to evolve with better move selection algorithms and expanded chess variant support, maintaining the clean OOP architecture while improving performance and chess strength.
