@@ -1,0 +1,54 @@
+﻿  ChessGUI.cpp
+C:\Users\User\Downloads\SFML-3.0.0\include\SFML\System\Exception.hpp(41,47): warning C4275: non dll-interface class 'std::runtime_error' used as base for dll-interface class 'sf::Exception'
+  (compiling source file 'ChessGUI.cpp')
+      C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\stdexcept(100,19):
+      see declaration of 'std::runtime_error'
+      C:\Users\User\Downloads\SFML-3.0.0\include\SFML\System\Exception.hpp(41,23):
+      see declaration of 'sf::Exception'
+  
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.h(12,26): warning C4834: discarding return value of function with [[nodiscard]] attribute
+  (compiling source file 'ChessGUI.cpp')
+  
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(531,32): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(531,32): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(531,32): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(531,32): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(531,32): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(530,60): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(530,60): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(530,60): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(530,60): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(530,60): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(565,40): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(565,40): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(565,40): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(565,40): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(565,40): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(564,68): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(564,68): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(564,68): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(564,68): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(564,68): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(578,28): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(578,28): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(578,28): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(578,28): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(578,28): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(577,65): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(577,65): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(577,65): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(577,65): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(577,65): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(588,28): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(588,28): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(588,28): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(588,28): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(588,28): warning C4244:         ]
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(587,65): warning C4244: 'argument': conversion from 'int' to 'T', possible loss of data
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(587,65): warning C4244:         with
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(587,65): warning C4244:         [
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(587,65): warning C4244:             T=float
+C:\Users\User\source\repos\swag-chess\Chess\ChessGUI.cpp(587,65): warning C4244:         ]
+  King.cpp
+  Generating Code...
+  Chess.vcxproj -> C:\Users\User\source\repos\swag-chess\x64\Debug\Chess.exe
