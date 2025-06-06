@@ -31,7 +31,7 @@ ChessGUI::~ChessGUI() {
 }
 
 bool ChessGUI::checkThreefoldRepetition() {
-    if (positionHistory.size() < 2) return false; // Need at least 2 previous positions
+    if (positionHistory.size() < 8) return false; // Need at least 4 previous positions
 
     // Get current position
     std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
@@ -54,7 +54,7 @@ bool ChessGUI::checkFiftyMoveRule() {
 }
 
 void ChessGUI::updateDrawConditions() {
-    // Add current position to history BEFORE making the move
+    // Add current position to history AFTER making the move
     std::string currentPosition = game.getBoard().getSimplePosition(game.isWhiteTurn());
     positionHistory.push_back(currentPosition);
 
@@ -66,7 +66,6 @@ void ChessGUI::updateDrawConditions() {
 
 bool ChessGUI::initialize() {
     // Load font FIRST before setting up any text elements
-    std::cout << "Starting initialization..." << std::endl;
     if (!font.openFromFile("arial.ttf")) {
         // Try alternative font locations
         if (!font.openFromFile("C:/Windows/Fonts/arial.ttf") &&
@@ -77,7 +76,6 @@ bool ChessGUI::initialize() {
             std::cerr << "Could not load any font! Trying to create default font..." << std::endl;
         }
     }
-    std::cout << "Font loaded successfully" << std::endl;
 
     // Setup text elements AFTER font is loaded
     statusText.setFont(font);
@@ -97,18 +95,18 @@ bool ChessGUI::initialize() {
     newGameText.setPosition(sf::Vector2f(35, 30));
 
     modeText.setFont(font);
-    modeText.setString(vsAI ? "vs AI" : "vs Human");
+    modeText.setString(vsAI ? "vs Bird" : "vs Human");
     modeText.setCharacterSize(14);
     modeText.setFillColor(sf::Color::White);
     modeText.setPosition(sf::Vector2f(175, 30));
-    std::cout << "Text elements configured" << std::endl;
+    
 
     // Load piece textures
     if (!loadPieceTextures()) {
         std::cerr << "Failed to load piece textures!" << std::endl;
         return false;
     }
-    std::cout << "Pieces loaded" << std::endl;
+    
 
     // Initialize game
     game = Game();
@@ -119,8 +117,6 @@ bool ChessGUI::initialize() {
         aiThinking = true;
         aiThinkTimer = sf::Time::Zero;
     }
-
-    std::cout << "Game initialized" << std::endl;
     return true;
 }
 
@@ -140,7 +136,6 @@ bool ChessGUI::loadPieceTextures() {
         pieceTextures[piece] = std::move(texture);
     }
 
-    std::cout << "Successfully loaded " << pieceTextures.size() << " piece textures." << std::endl;
     return true;
 }
 
@@ -292,16 +287,32 @@ void ChessGUI::movePiece(int toRow, int toCol) {
 
             if (isPawnMove || isCapture) {
                 fiftyMoveCounter = 0;  // Reset counter
+                // Also clear position history on irreversible moves
+                positionHistory.clear();
             }
             else {
                 fiftyMoveCounter++;
             }
 
-            // Toggle turn FIRST
+            // Store current turn before toggling
+            bool wasWhiteTurn = game.isWhiteTurn();
+
+            // Toggle turn
             game.toggleTurn();
 
-            // THEN update position history with the new game state
+            // Update position history AFTER the move and turn toggle
             updateDrawConditions();
+
+            // Check for threefold repetition only after White's move
+            // (i.e., when it's now Black's turn, meaning White just moved)
+            if (!wasWhiteTurn) { // White just moved, now it's Black's turn
+                if (checkThreefoldRepetition()) {
+                    gameOver = true;
+                    statusText.setString("Draw by Threefold Repetition!");
+                    clearSelection();
+                    return;
+                }
+            }
 
             // Force immediate GUI update
             render();
@@ -334,11 +345,9 @@ void ChessGUI::handleAIMove() {
     std::string bestMove = game.findBestMove(aiIsWhite);
 
     if (bestMove.empty()) {
-        std::cout << "AI couldn't find a valid move!" << std::endl;
         return;
     }
 
-    std::cout << "AI considering move: " << bestMove << std::endl;
 
     // Handle castling moves first
     if (bestMove == "O-O" || bestMove == "O-O-O") {
@@ -360,10 +369,23 @@ void ChessGUI::handleAIMove() {
 
         if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
             boardRef.setLastMove(move);
+
+            // Store current turn before toggling
+            bool wasWhiteTurn = game.isWhiteTurn();
+
             game.toggleTurn();
             updateDrawConditions(); // Add position after turn toggle
+
+            // Check for threefold repetition only after White's move
+            if (!wasWhiteTurn) { // White just moved
+                if (checkThreefoldRepetition()) {
+                    gameOver = true;
+                    statusText.setString("Draw by Threefold Repetition!");
+                    return;
+                }
+            }
+
             updateGameStatus();
-            std::cout << "AI castled: " << bestMove << std::endl;
         }
         return;
     }
@@ -432,16 +454,29 @@ void ChessGUI::handleAIMove() {
 
         if (isPawnMove || isCapture) {
             fiftyMoveCounter = 0;  // Reset counter
+            // Also clear position history on irreversible moves
+            positionHistory.clear();
         }
         else {
             fiftyMoveCounter++;
         }
 
+        // Store current turn before toggling
+        bool wasWhiteTurn = game.isWhiteTurn();
+
         game.toggleTurn();
         updateDrawConditions(); // Add position after turn toggle
-        updateGameStatus();
 
-        std::cout << "AI moved from " << move.fromCoord << " to " << move.toCoord << std::endl;
+        // Check for threefold repetition only after White's move
+        if (!wasWhiteTurn) { // White just moved
+            if (checkThreefoldRepetition()) {
+                gameOver = true;
+                statusText.setString("Draw by Threefold Repetition!");
+                return;
+            }
+        }
+
+        updateGameStatus();
     }
     else {
         std::cout << "AI move was invalid: " << bestMove << std::endl;
@@ -548,11 +583,11 @@ std::string ChessGUI::getPieceTextureKey(Piece* piece) {
 }
 
 sf::Color ChessGUI::getLightSquareColor() {
-    return sf::Color(240, 217, 181);  // Light beige
+    return sf::Color(232, 228, 210);  // Light beige
 }
 
 sf::Color ChessGUI::getDarkSquareColor() {
-    return sf::Color(181, 136, 99);   // Dark brown
+    return sf::Color(70, 108, 142);   // Dark brown
 }
 
 sf::Color ChessGUI::getHighlightColor() {
@@ -610,7 +645,7 @@ void ChessGUI::updateGameStatus() {
     }
 
     // Update mode text
-    modeText.setString(vsAI ? "vs AI" : "vs Human");
+    modeText.setString(vsAI ? "vs Bird" : "vs Human");
 }
 void ChessGUI::resetGame() {
     game = Game();
