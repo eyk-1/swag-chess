@@ -55,7 +55,8 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
                     board->getPiece(7, 6) == nullptr &&
                     board->getPiece(7, 7) &&
                     board->getPiece(7, 7)->getSymbol() == 'R' &&
-                    !board->isInCheck(isWhite);
+                    !board->isInCheck(isWhite) &&
+                    board->getWhiteCanCastleKingside();
             }
             // Queenside castling
             if (toCol == 2) {
@@ -64,7 +65,8 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
                     board->getPiece(7, 3) == nullptr &&
                     board->getPiece(7, 0) &&
                     board->getPiece(7, 0)->getSymbol() == 'R' &&
-                    !board->isInCheck(isWhite);
+                    !board->isInCheck(isWhite) &&
+                    board->getWhiteCanCastleQueenside();
             }
         }
         else if (!isWhite && fromRow == 0 && fromCol == 4) {
@@ -73,7 +75,8 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
                     board->getPiece(0, 6) == nullptr &&
                     board->getPiece(0, 7) &&
                     board->getPiece(0, 7)->getSymbol() == 'r' &&
-                    !board->isInCheck(isWhite);
+                    !board->isInCheck(isWhite) &&
+                    board->getBlackCanCastleKingside();
             }
             if (toCol == 2) {
                 return board->getPiece(0, 1) == nullptr &&
@@ -81,10 +84,10 @@ bool King::isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* bo
                     board->getPiece(0, 3) == nullptr &&
                     board->getPiece(0, 0) &&
                     board->getPiece(0, 0)->getSymbol() == 'r' &&
-                    !board->isInCheck(isWhite);
+                    !board->isInCheck(isWhite) &&
+                    board->getBlackCanCastleQueenside();
             }
         }
     }
-
     return false;
 }

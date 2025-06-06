@@ -62,7 +62,6 @@ private:
     int fiftyMoveCounter;                      // Track 50-move rule
     bool loadPieceTextures();
     void handleEvents();
-    void update();
     void render();
     void update(sf::Time deltaTime);
     // Board interaction

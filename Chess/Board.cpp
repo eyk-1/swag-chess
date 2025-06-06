@@ -21,8 +21,17 @@ using namespace std;
         }
     }
 
-    Board::Board(const Board& other) : shouldDeletePieces(true), hasLastMove(other.hasLastMove), lastMove(other.lastMove), enPassantTarget(other.enPassantTarget) {
-        // Initialize all squares to nullptr first
+    Board::Board(const Board& other) :
+        shouldDeletePieces(true),
+        hasLastMove(other.hasLastMove),
+        lastMove(other.lastMove),
+        enPassantTarget(other.enPassantTarget),
+        whiteCanCastleKingside(other.whiteCanCastleKingside),
+        whiteCanCastleQueenside(other.whiteCanCastleQueenside),
+        blackCanCastleKingside(other.blackCanCastleKingside),
+        blackCanCastleQueenside(other.blackCanCastleQueenside) {
+
+        // Initialize all squares to nullptr
         for (int row = 0; row < 8; ++row) {
             for (int col = 0; col < 8; ++col) {
                 squares[row][col] = nullptr;
@@ -39,7 +48,6 @@ using namespace std;
         }
     }
 
-    // You should also add an assignment operator to be safe:
     Board& Board::operator=(const Board& other) {
         if (this != &other) {
             // Clean up existing pieces
@@ -68,6 +76,10 @@ using namespace std;
             hasLastMove = other.hasLastMove;
             lastMove = other.lastMove;
             enPassantTarget = other.enPassantTarget;
+            whiteCanCastleKingside = other.whiteCanCastleKingside;
+            whiteCanCastleQueenside = other.whiteCanCastleQueenside;
+            blackCanCastleKingside = other.blackCanCastleKingside;
+            blackCanCastleQueenside = other.blackCanCastleQueenside;
             shouldDeletePieces = true;
         }
         return *this;
@@ -154,34 +166,66 @@ using namespace std;
 
             if (!kingInCheck) {
                 if (isWhiteTurn && fromRow == 7 && fromCol == 4) {
-                    if (toRow == 7 && toCol == 6 && squares[7][5] == nullptr && squares[7][6] == nullptr && dynamic_cast<Rook*>(squares[7][7])) {
+                    // White kingside castling
+                    if (toRow == 7 && toCol == 6 && whiteCanCastleKingside &&
+                        squares[7][5] == nullptr && squares[7][6] == nullptr &&
+                        dynamic_cast<Rook*>(squares[7][7])) {
+
                         squares[7][6] = piece;
                         squares[7][4] = nullptr;
                         squares[7][5] = squares[7][7];
                         squares[7][7] = nullptr;
+
+                        // Update castling rights
+                        whiteCanCastleKingside = false;
+                        whiteCanCastleQueenside = false;
                         return true;
                     }
-                    if (toRow == 7 && toCol == 2 && squares[7][1] == nullptr && squares[7][2] == nullptr && squares[7][3] == nullptr && dynamic_cast<Rook*>(squares[7][0])) {
+                    // White queenside castling
+                    if (toRow == 7 && toCol == 2 && whiteCanCastleQueenside &&
+                        squares[7][1] == nullptr && squares[7][2] == nullptr &&
+                        squares[7][3] == nullptr && dynamic_cast<Rook*>(squares[7][0])) {
+
                         squares[7][2] = piece;
                         squares[7][4] = nullptr;
                         squares[7][3] = squares[7][0];
                         squares[7][0] = nullptr;
+
+                        // Update castling rights
+                        whiteCanCastleKingside = false;
+                        whiteCanCastleQueenside = false;
                         return true;
                     }
                 }
                 else if (!isWhiteTurn && fromRow == 0 && fromCol == 4) {
-                    if (toRow == 0 && toCol == 6 && squares[0][5] == nullptr && squares[0][6] == nullptr && dynamic_cast<Rook*>(squares[0][7])) {
+                    // Black kingside castling
+                    if (toRow == 0 && toCol == 6 && blackCanCastleKingside &&
+                        squares[0][5] == nullptr && squares[0][6] == nullptr &&
+                        dynamic_cast<Rook*>(squares[0][7])) {
+
                         squares[0][6] = piece;
                         squares[0][4] = nullptr;
                         squares[0][5] = squares[0][7];
                         squares[0][7] = nullptr;
+
+                        // Update castling rights
+                        blackCanCastleKingside = false;
+                        blackCanCastleQueenside = false;
                         return true;
                     }
-                    if (toRow == 0 && toCol == 2 && squares[0][1] == nullptr && squares[0][2] == nullptr && squares[0][3] == nullptr && dynamic_cast<Rook*>(squares[0][0])) {
+                    // Black queenside castling
+                    if (toRow == 0 && toCol == 2 && blackCanCastleQueenside &&
+                        squares[0][1] == nullptr && squares[0][2] == nullptr &&
+                        squares[0][3] == nullptr && dynamic_cast<Rook*>(squares[0][0])) {
+
                         squares[0][2] = piece;
                         squares[0][4] = nullptr;
                         squares[0][3] = squares[0][0];
                         squares[0][0] = nullptr;
+
+                        // Update castling rights
+                        blackCanCastleKingside = false;
+                        blackCanCastleQueenside = false;
                         return true;
                     }
                 }
@@ -232,7 +276,7 @@ using namespace std;
         delete squares[toRow][toCol];
         squares[toRow][toCol] = piece;
         squares[fromRow][fromCol] = nullptr;
-
+        updateCastlingRights(fromRow, fromCol, toRow, toCol);
         return true;
     }
 
@@ -325,41 +369,6 @@ using namespace std;
         return true; // No legal moves found
     }
 
-    std::string Board::getSimplePosition(bool isWhiteTurn) const {
-        std::ostringstream ss;
-
-        // 1. Piece positions
-        for (int row = 0; row < 8; ++row) {
-            for (int col = 0; col < 8; ++col) {
-                Piece* piece = squares[row][col];
-                if (piece)
-                    ss << piece->getSymbol();
-                else
-                    ss << '.';
-            }
-        }
-
-        // 2. Turn info
-        ss << (isWhiteTurn ? "w" : "b");
-
-        // 3. En passant target square
-        ss << "|" << enPassantTarget;
-
-        // 4. Castling rights using proper tracking
-        ss << "|";
-        if (whiteCanCastleKingside) ss << "K";
-        if (whiteCanCastleQueenside) ss << "Q";
-        if (blackCanCastleKingside) ss << "k";
-        if (blackCanCastleQueenside) ss << "q";
-        if (!whiteCanCastleKingside && !whiteCanCastleQueenside &&
-            !blackCanCastleKingside && !blackCanCastleQueenside) {
-            ss << "-";
-        }
-
-        return ss.str();
-    }
-
-
     bool Board::insufficientMaterialCheck() {
         int piececount = 0;
         for (int row = 0; row < 8; row++) { // Check if sufficient material is on the board.
@@ -385,8 +394,10 @@ using namespace std;
         lastMove = move;
         hasLastMove = true;
     }
-    string Board::generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns,int moves) const {
+    string Board::generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside,
+        bool BlackCastleKingside, bool BlackCastleQueenside, int turns, int moves) const {
         string fen;
+
         // 1. Piece Placement
         for (int row = 0; row < 8; ++row) {
             int emptyCount = 0;
@@ -397,7 +408,7 @@ using namespace std;
                         fen += std::to_string(emptyCount);
                         emptyCount = 0;
                     }
-                    fen += piece->getSymbol(); // Implement this method in your Piece class
+                    fen += piece->getSymbol();
                 }
                 else {
                     ++emptyCount;
@@ -414,12 +425,12 @@ using namespace std;
         // 2. Active Color
         fen += (whiteTurn ? " w " : " b ");
 
-        // 3. Castling Availability
+        // 3. Castling Availability - Use the actual castling rights from the board
         std::string castling;
-        if (WhiteCastleKingside) castling += 'K';
-        if (WhiteCastleQueenside) castling += 'Q';
-        if (BlackCastleKingside) castling += 'k';
-        if (BlackCastleQueenside) castling += 'q';
+        if (whiteCanCastleKingside) castling += 'K';
+        if (whiteCanCastleQueenside) castling += 'Q';
+        if (blackCanCastleKingside) castling += 'k';
+        if (blackCanCastleQueenside) castling += 'q';
         fen += (castling.empty() ? "- " : castling + " ");
 
         // 4. En Passant Target Square
@@ -429,9 +440,87 @@ using namespace std;
         fen += std::to_string(turns) + " ";
 
         // 6. Fullmove Number
-        fen += std::to_string(moves/2);
+        fen += std::to_string(moves / 2);
 
         return fen;
     }
 
+    std::string Board::getSimplePosition(bool isWhiteTurn) const {
+        std::ostringstream ss;
 
+        // 1. Piece positions
+        for (int row = 0; row < 8; ++row) {
+            for (int col = 0; col < 8; ++col) {
+                Piece* piece = squares[row][col];
+                if (piece)
+                    ss << piece->getSymbol();
+                else
+                    ss << '.';
+            }
+        }
+
+        // 2. Turn info
+        ss << (isWhiteTurn ? "w" : "b");
+
+        // 3. En passant target square
+        ss << "|" << enPassantTarget;
+
+        // 4. Castling rights using the actual member variables
+        ss << "|";
+        if (whiteCanCastleKingside) ss << "K";
+        if (whiteCanCastleQueenside) ss << "Q";
+        if (blackCanCastleKingside) ss << "k";
+        if (blackCanCastleQueenside) ss << "q";
+        if (!whiteCanCastleKingside && !whiteCanCastleQueenside &&
+            !blackCanCastleKingside && !blackCanCastleQueenside) {
+            ss << "-";
+        }
+
+        return ss.str();
+    }
+
+    void Board::updateCastlingRights(int fromRow, int fromCol, int toRow, int toCol) {
+        // Check if king moved
+        if (dynamic_cast<King*>(squares[toRow][toCol])) {
+            if (squares[toRow][toCol]->isWhitePiece()) {
+                whiteCanCastleKingside = false;
+                whiteCanCastleQueenside = false;
+            }
+            else {
+                blackCanCastleKingside = false;
+                blackCanCastleQueenside = false;
+            }
+        }
+
+        // Check if rook moved from starting position
+        if (dynamic_cast<Rook*>(squares[toRow][toCol])) {
+            // White rooks
+            if (fromRow == 7 && fromCol == 0) { // Queenside white rook
+                whiteCanCastleQueenside = false;
+            }
+            else if (fromRow == 7 && fromCol == 7) { // Kingside white rook
+                whiteCanCastleKingside = false;
+            }
+            // Black rooks
+            else if (fromRow == 0 && fromCol == 0) { // Queenside black rook
+                blackCanCastleQueenside = false;
+            }
+            else if (fromRow == 0 && fromCol == 7) { // Kingside black rook
+                blackCanCastleKingside = false;
+            }
+        }
+
+        // Check if rook was captured
+        if (toRow == 7 && toCol == 0) { // White queenside rook captured
+            whiteCanCastleQueenside = false;
+        }
+        else if (toRow == 7 && toCol == 7) { // White kingside rook captured
+            whiteCanCastleKingside = false;
+        }
+        else if (toRow == 0 && toCol == 0) { // Black queenside rook captured
+            blackCanCastleQueenside = false;
+        }
+        else if (toRow == 0 && toCol == 7) { // Black kingside rook captured
+            blackCanCastleKingside = false;
+        }
+    }

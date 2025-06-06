@@ -57,5 +57,6 @@ public:
     void setWhiteCanCastleQueenside(bool canCastle) { whiteCanCastleQueenside = canCastle; }
     void setBlackCanCastleKingside(bool canCastle) { blackCanCastleKingside = canCastle; }
     void setBlackCanCastleQueenside(bool canCastle) { blackCanCastleQueenside = canCastle; }
+    void updateCastlingRights(int fromRow, int fromCol, int toRow, int toCol);
 
 };

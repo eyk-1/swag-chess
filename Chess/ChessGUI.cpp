@@ -204,6 +204,13 @@ void ChessGUI::update(sf::Time deltaTime) {
             // Start AI thinking
             aiThinking = true;
             aiThinkTimer = sf::Time::Zero;
+            // Update status to show AI is thinking
+            if (aiIsWhite) {
+                statusText.setString("White (Bird) is thinking...");
+            }
+            else {
+                statusText.setString("Black (Bird) is thinking...");
+            }
         }
         else {
             // Update thinking timer
@@ -213,6 +220,8 @@ void ChessGUI::update(sf::Time deltaTime) {
             if (aiThinkTimer >= sf::milliseconds(500)) {  // 500ms delay
                 handleAIMove();
                 aiThinking = false;
+                // Update status after AI move
+                updateGameStatus();
             }
         }
     }
@@ -248,12 +257,37 @@ void ChessGUI::selectPiece(int row, int col) {
         selectedRow = row;
         selectedCol = col;
 
-        // Calculate valid moves
+        // Calculate valid moves - but only show LEGAL moves
         validMoves.clear();
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
+                // First check if the piece can theoretically move there
                 if (piece->isValidMove(row, col, r, c, &board)) {
-                    validMoves.push_back(sf::Vector2i(c, r));
+                    // Then check if this move would be legal (using the same logic as movePiece)
+
+                    // Simulate the move to see if it exposes the king
+                    Piece* tempFrom = board.getPiece(row, col);
+                    Piece* tempTo = board.getPiece(r, c);
+
+                    // Temporarily make the move
+                    board.setPiece(r, c, tempFrom);
+                    board.setPiece(row, col, nullptr);
+
+                    // Check if this move leaves our king in check
+                    bool exposesKing = board.isInCheck(game.isWhiteTurn());
+
+                    // Restore the board state
+                    board.setPiece(row, col, tempFrom);
+                    board.setPiece(r, c, tempTo);
+
+                    // Only add to valid moves if it doesn't expose the king
+                    if (!exposesKing) {
+                        //  capture our own piece check
+                        Piece* destPiece = board.getPiece(r, c);
+                        if (!destPiece || destPiece->isWhitePiece() != game.isWhiteTurn()) {
+                            validMoves.push_back(sf::Vector2i(c, r));
+                        }
+                    }
                 }
             }
         }
@@ -314,16 +348,20 @@ void ChessGUI::movePiece(int toRow, int toCol) {
                 }
             }
 
-            // Force immediate GUI update
+            // Update game status to show it's now AI's turn
+            updateGameStatus();
+
+            // Force immediate GUI update to show the turn change
             render();
 
             // Clear selection after rendering
             clearSelection();
 
-            // If playing against AI and it's now AI's turn, make it move immediately
+            // If playing against AI and it's now AI's turn, start AI thinking
             if (vsAI && game.isWhiteTurn() == aiIsWhite) {
-                handleAIMove();
-                render(); // Update again after AI move
+                aiThinking = true;
+                aiThinkTimer = sf::Time::Zero;
+                // Don't call handleAIMove() immediately - let update() handle it with delay
             }
         }
         else {
@@ -332,6 +370,7 @@ void ChessGUI::movePiece(int toRow, int toCol) {
         }
     }
 }
+
 
 
 void ChessGUI::clearSelection() {
@@ -601,12 +640,22 @@ sf::Color ChessGUI::getValidMoveColor() {
 void ChessGUI::updateGameStatus() {
     Board& board = game.getBoard();
 
-    // Update turn text
-    if (game.isWhiteTurn()) {
-        turnText.setString("White's Turn");
+    // Update turn text - Show AI thinking status during AI turn
+    if (aiThinking && vsAI && game.isWhiteTurn() == aiIsWhite) {
+        if (aiIsWhite) {
+            turnText.setString("White (Bird) Thinking...");
+        }
+        else {
+            turnText.setString("Black (Bird) Thinking...");
+        }
     }
     else {
-        turnText.setString("Black's Turn");
+        if (game.isWhiteTurn()) {
+            turnText.setString(vsAI && aiIsWhite ? "White (AI) Turn" : "White's Turn");
+        }
+        else {
+            turnText.setString(vsAI && !aiIsWhite ? "Black (AI) Turn" : "Black's Turn");
+        }
     }
 
     // Check for draws first
@@ -640,23 +689,27 @@ void ChessGUI::updateGameStatus() {
     else if (board.isInCheck(game.isWhiteTurn())) {
         statusText.setString(game.isWhiteTurn() ? "White in Check!" : "Black in Check!");
     }
-    else {
+    else if (!aiThinking) {  // Only show "Game in Progress" when AI is not thinking
         statusText.setString("Game in Progress");
     }
 
     // Update mode text
     modeText.setString(vsAI ? "vs Bird" : "vs Human");
 }
+
 void ChessGUI::resetGame() {
     game = Game();
     pieceSelected = false;
     selectedRow = -1;
     selectedCol = -1;
     gameOver = false;
+    aiThinking = false;  // Reset AI thinking state
+    aiThinkTimer = sf::Time::Zero;
     validMoves.clear();
     positionHistory.clear();      // Clear position history
     fiftyMoveCounter = 0;         // Reset fifty move counter
     updateGameStatus();
+
     // Start AI thinking if AI goes first
     if (vsAI && aiIsWhite) {
         aiThinking = true;
