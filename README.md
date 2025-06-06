@@ -51,5 +51,15 @@ chess game made in the second semester of a CS major at IBA :D
 ## Technical Highlights
 
 Built using object-oriented design principles with inheritance, polymorphism, and clean separation of concerns. The AI uses minimax with alpha-beta pruning and has achieved 84% accuracy against intermediate players.
+  
+For detailed technical documentation, see [**Swag Chess Technical Documentation**](swag_chess_documentation.md)
 
-For detailed technical documentation, see `swag_chess_documentation.md`.
+ ## Contributing
+Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+
+###  Reach Me on Discord
+
+[![Discord](https://img.shields.io/badge/eyk__1-5865F2?logo=discord&logoColor=white&style=for-the-badge)](https://discord.com/)
+
+
+
