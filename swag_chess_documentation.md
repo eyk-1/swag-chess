@@ -2,143 +2,352 @@
 
 ## Overview
 
-This document explains the Swag Chess codebase line-by-line, including all classes, structs, and their roles in the program. The game is written in C++ and includes features such as move legality checking, AI using minimax, en passant, castling, promotion, PGN output and FEN output.
+This document explains the Swag Chess codebase, a comprehensive chess engine built during the second semester of a CS major at IBA. The game is written in C++ using object-oriented programming principles and supports both console and GUI modes using SFML. 
 
-## Game.h / Game.cpp
+**Key Features:**
+- Player vs Player and Player vs AI gameplay modes
+- **Bird Engine**: Minimax AI with alpha-beta pruning and static evaluation
+- Full chess rule compliance: castling, en passant, promotion, draw conditions
+- PGN (Portable Game Notation) and FEN (Forsyth-Edwards Notation) generation
+- Game state tracking for threefold repetition and fifty-move rule
+- Object-oriented design demonstrating inheritance, polymorphism, and encapsulation
 
-### Class Game
+---
 
-*Manages the full chess game lifecycle including game loop, input parsing, AI moves, and PGN history.*
+## Game Class (`Game.h` / `Game.cpp`)
 
-#### Attributes:
+**Purpose:** Manages the full chess game lifecycle including game loop, input parsing, AI moves, and move history.
 
-- `board`: *Instance of the Board class that tracks current game state.*
-- `whiteTurn`: *Boolean that is true if it's White's turn to move.*
-- `moveHistory`: *A vector that stores the history of all Move objects played.*
-- `pgnMoves`: *Vector that stores strings representing PGN of each move.*
-- `fenMoves`: *Vector that stores strings representing FEN of each move.*
-- `WhiteCastleKingside`: *Flag indicating if White can castle kingside.*
-- `WhiteCastleQueenside`: *Flag indicating if White can castle queenside.*
-- `BlackCastleKingside`: *Flag indicating if Black can castle kingside.*
-- `BlackCastleQueenside`: *Flag indicating if Black can castle queenside.*
-- `RankCheck`: *Flag for move disambiguation by rank.*
-- `FileCheck`: *Flag for move disambiguation by file.*
-- `previousPositions`: *Vector tracking board states for threefold repetition detection.*
-- `minimaxNodeCount`: *Counter for nodes evaluated during minimax search.*
+### Attributes
 
-#### Methods:
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `board` | `Board` | Instance tracking current game state |
+| `whiteTurn` | `bool` | True if it's White's turn to move |
+| `moveHistory` | `vector<Move>` | History of all Move objects played |
+| `pgnMoves` | `vector<string>` | PGN notation strings for each move |
+| `fenMoves` | `vector<string>` | FEN notation strings for each move |
+| `WhiteCastleKingside` | `bool` | White kingside castling rights |
+| `WhiteCastleQueenside` | `bool` | White queenside castling rights |
+| `BlackCastleKingside` | `bool` | Black kingside castling rights |
+| `BlackCastleQueenside` | `bool` | Black queenside castling rights |
+| `RankCheck` | `bool` | Flag for move disambiguation by rank |
+| `FileCheck` | `bool` | Flag for move disambiguation by file |
+| `previousPositions` | `vector<string>` | Board states for threefold repetition |
+| `minimaxNodeCount` | `int` | Counter for minimax search nodes |
 
-- `Game()`: *Constructor for Game objects.*
-- `void start()`: *Main game loop that manages turns and processes user input.*
-- `string findBestMove(bool isAIWhite)`: *Selects the best move for AI using minimax algorithm.*
-- `int minimax(Board& b, int depth, int alpha, int beta, bool maximizing, bool aiIsWhite)`: *Recursive decision tree for AI with alpha-beta pruning.*
-- `int evaluateBoard(Board& board, bool isWhitePerspective)`: *Heuristic evaluator for AI move assessment.*
-- `void AmbiguityCheck(Board& board, bool isWhite, int fromRow, int fromCol, int toRow, int toCol)`: *Detects whether PGN disambiguation is needed.*
-- `void printPGN(const std::vector<std::string>& pgnMoves)`: *Outputs the game history in PGN format.*
-- `void printFEN(const vector<string>& fenMoves)`: *Outputs the game history in FEN format.*
+### Methods
 
-#### Main Logic:
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `Game()` | - | Constructor for Game objects |
+| `start()` | `void` | Main game loop *(console only)* |
+| `findBestMove(bool isAIWhite)` | `string` | AI move selection using minimax |
+| `minimax(...)` | `int` | Recursive minimax with alpha-beta pruning |
+| `evaluateBoard(...)` | `int` | Heuristic board evaluation for AI |
+| `AmbiguityCheck(...)` | `void` | Detects PGN disambiguation needs |
+| `printPGN(...)` | `void` | Outputs game history in PGN *(console only)* |
+| `printFEN(...)` | `void` | Outputs game history in FEN *(console only)* |
+| `isWhiteTurn()` | `bool` | Returns current turn state |
+| `toggleTurn()` | `void` | Switches active player |
+| `getBoard()` | `Board&` | Returns reference to game board |
 
-- Handles player vs player or player vs AI gameplay.
-- Moves are input as standard algebraic notation.
-- Promotion is detected in `Game::start` by checking if a pawn reached the last rank.
-- Promotion notation ('=Q') is appended to PGN via the Move struct.
+---
 
-## Moves.h
+## ChessGUI Class (`ChessGUI.h` / `ChessGUI.cpp`)
 
-### Struct Move
+**Purpose:** Handles all graphical interface operations using SFML, including rendering, user input, and AI integration.
 
-*Stores information about a move for replay, PGN generation, and legality checking.*
+### Key Constants
 
-#### Fields:
+```cpp
+static const int BOARD_SIZE = 640;
+static const int SQUARE_SIZE = 80;
+static const int BOARD_OFFSET_X = 80;
+static const int BOARD_OFFSET_Y = 80;
+```
 
-- `string player`: *Which player played the move.*
-- `string fromCoord`: *Starting square in algebraic notation (e.g., "e2").*
-- `string toCoord`: *Ending square in algebraic notation (e.g., "e4").*
-- `char pieceSymbol`: *Character representing the piece (e.g., 'P', 'N').*
-- `bool isCapture`: *True if move is a capture.*
-- `bool isEnPassant`: *True if en passant capture occurred.*
-- `bool isPromotion`: *True if move promotes a pawn.*
-- `char promotionTo`: *Character representing promoted piece (default 'Q').*
-- `bool isCheck`: *True if move puts opponent in check.*
-- `bool isCheckmate`: *True if move puts opponent in checkmate.*
-- `bool isKingsideCastle`: *True if move is kingside castling.*
-- `bool isQueensideCastle`: *True if move is queenside castling.*
-- `bool RankUnclear`: *True if move requires rank disambiguation.*
-- `bool FileUnclear`: *True if move requires file disambiguation.*
+### Attributes
 
-#### Method:
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `window` | `sf::RenderWindow` | Main SFML window |
+| `game` | `Game` | Core game logic instance |
+| `font` | `sf::Font` | Font for UI text |
+| `pieceTextures` | `unordered_map<string, sf::Texture>` | Piece graphics |
+| `pieceSelected` | `bool` | Whether a piece is currently selected |
+| `selectedRow/Col` | `int` | Coordinates of selected piece |
+| `gameOver` | `bool` | Game termination state |
+| `vsAI` | `bool` | Whether playing against AI |
+| `aiIsWhite` | `bool` | AI color preference |
+| `validMoves` | `vector<sf::Vector2i>` | Highlighted legal moves |
+| `positionHistory` | `vector<string>` | For draw condition checking |
+| `fiftyMoveCounter` | `int` | Fifty-move rule tracking |
 
-- `string toPGN() const`: *Converts the Move object into PGN string notation.*
-  - Handles pawn moves, captures, disambiguation (e.g., Nfg4, R1d3)
-  - Adds symbols for check (+), checkmate (#), and promotions (=Q)
+### Methods
 
-## Board.h / Board.cpp
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `ChessGUI(...)` | - | Constructor with AI options |
+| `initialize()` | `bool` | Setup graphics and resources |
+| `run()` | `void` | Main GUI game loop |
+| `checkThreefoldRepetition()` | `bool` | Detects threefold repetition |
+| `checkFiftyMoveRule()` | `bool` | Detects fifty-move rule |
+| `updateDrawConditions()` | `void` | Updates draw condition tracking |
 
-### Class Board
+---
 
-*Represents the 8x8 chessboard and contains all the Piece objects.*
+## Move Struct (`Moves.h`)
 
-#### Attributes:
+**Purpose:** Stores comprehensive move information for replay, PGN generation, and legality checking.
 
-- `Piece* squares[8][8]`: *2D array of Piece pointers representing the board.*
-- `bool shouldDeletePieces`: *Flag determining if pieces should be deleted on destruction.*
-- `Move lastMove`: *Stores the latest Move played.*
-- `bool hasLastMove`: *Flag indicating if a move has been made.*
-- `string enPassantTarget`: *String representing square where en passant is possible.*
+### Fields
 
-#### Methods:
+| Field | Type | Description |
+|-------|------|-------------|
+| `player` | `string` | Player who made the move |
+| `fromCoord` | `string` | Starting square (e.g., "e2") |
+| `toCoord` | `string` | Ending square (e.g., "e4") |
+| `pieceSymbol` | `char` | Piece character ('P', 'N', etc.) |
+| `isCapture` | `bool` | Whether move captures a piece |
+| `isEnPassant` | `bool` | En passant capture flag |
+| `isPromotion` | `bool` | Pawn promotion flag |
+| `promotionTo` | `char` | Promoted piece type (default 'Q') |
+| `isCheck` | `bool` | Move results in check |
+| `isCheckmate` | `bool` | Move results in checkmate |
+| `isKingsideCastle` | `bool` | Kingside castling move |
+| `isQueensideCastle` | `bool` | Queenside castling move |
+| `RankUnclear` | `bool` | Requires rank disambiguation |
+| `FileUnclear` | `bool` | Requires file disambiguation |
 
-- `Board()`: *Constructor for board objects.*
-- `~Board()`: *Destructor for board objects.*
-- `Board(const Board& other)`: *Copy constructor for simulations and minimax.*
-- `void initialize()`: *Sets up the starting position of all pieces.*
-- `void printBoard()`: *Displays the current board state.*
-- `Piece* getPiece(int row, int col) const`: *Fetches a piece from the board at specified coordinates.*
-- `void setPiece(int col, int row, Piece* piece)`: *Sets piece on the board, mainly for simulations.*
-- `bool movePiece(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn)`: *Validates and applies a move (including castling, en passant, promotion).*
-- `void setLastMove(const Move& move)`: *Updates the most recent move information.*
-- `Move getLastMove() const`: *Returns the last move made.*
-- `bool hasEnPassant() const`: *Checks if en passant is possible.*
-- `bool isPromotionMove(int fromRow, int fromCol, int toRow, int toCol, bool isWhiteTurn) const`: *Determines if a move is a promotion.*
-- `bool isInCheck(bool isWhiteKing)`: *Checks if the specified king is under threat.*
-- `bool isCheckmate(bool isWhiteKing)`: *Checks if the specified king is in checkmate.*
-- `bool isStalemate(bool isWhiteKing)`: *Checks if the specified player has no legal moves but is not in check.*
-- `string getSimplePosition(bool whiteTurn) const`: *Returns a simple string representation of the board position.*
-- `bool insufficientMaterialCheck()`: *Detects draw conditions due to insufficient material.*
-- `string generateFEN(bool whiteTurn, bool WhiteCastleKingside, bool WhiteCastleQueenside, bool BlackCastleKingside, bool BlackCastleQueenside, int turns, int moves) const`: *Builds FEN string from current board state.*
+### Key Method
+
+**`toPGN()`**: Converts Move object to standard PGN notation
+- Handles special moves (castling, en passant, promotion)
+- Adds disambiguation when multiple pieces can reach same square
+- Includes check (+) and checkmate (#) symbols
+
+---
+
+## Board Class (`Board.h` / `Board.cpp`)
+
+**Purpose:** Represents the 8×8 chessboard state and manages piece interactions.
+
+### Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `squares[8][8]` | `Piece*` | 2D array representing board positions |
+| `shouldDeletePieces` | `bool` | Memory management flag |
+| `lastMove` | `Move` | Most recent move played |
+| `hasLastMove` | `bool` | Whether any move has been made |
+| `enPassantTarget` | `string` | En passant target square |
+| `*CanCastle*` | `bool` | Castling rights for each side/direction |
+
+### Core Methods
+
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `initialize()` | `void` | Sets up starting position |
+| `printBoard()` | `void` | Console board display *(console only)* |
+| `getPiece(int, int)` | `Piece*` | Retrieves piece at coordinates |
+| `setPiece(int, int, Piece*)` | `void` | Places piece (for simulations) |
+| `movePiece(...)` | `bool` | Validates and executes moves |
+| `isInCheck(bool)` | `bool` | Checks if king is under attack |
+| `isCheckmate(bool)` | `bool` | Determines checkmate condition |
+| `isStalemate(bool)` | `bool` | Determines stalemate condition |
+| `isPromotionMove(...)` | `bool` | Detects pawn promotion |
+| `generateFEN(...)` | `string` | Creates FEN notation string |
+| `getSimplePosition(bool)` | `string` | Simplified position string |
+| `insufficientMaterialCheck()` | `bool` | Detects insufficient material draws |
+
+### Castling Management
+
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `getWhiteCanCastleKingside()` | `bool` | White kingside castling rights |
+| `getWhiteCanCastleQueenside()` | `bool` | White queenside castling rights |
+| `getBlackCanCastleKingside()` | `bool` | Black kingside castling rights |
+| `getBlackCanCastleQueenside()` | `bool` | Black queenside castling rights |
+| `updateCastlingRights(...)` | `void` | Updates rights after moves |
+
+---
 
 ## Piece Hierarchy
 
-### Abstract Class Piece
+### Abstract Base Class: Piece (`Piece.h`)
 
-*Base class for King, Queen, Rook, Bishop, Knight, Pawn.*
+**Purpose:** Defines common interface for all chess pieces.
 
-#### Attributes:
+#### Core Interface
 
-- `char symbol`: *Character representing the piece (e.g., 'K', 'N').*
-- `bool isWhite`: *Boolean flag that is true if the piece is white.*
+| Member | Type | Description |
+|--------|------|-------------|
+| `symbol` | `char` | Piece character representation |
+| `isWhite` | `bool` | Color flag |
+| `isWhitePiece()` | `bool` | Color accessor |
+| `getSymbol()` | `char` | **Pure virtual** - returns piece symbol |
+| `isValidMove(...)` | `bool` | **Pure virtual** - validates moves |
+| `clone()` | `Piece*` | **Pure virtual** - creates copy for simulations |
 
-#### Methods:
+### Derived Piece Classes
 
-- `Piece(bool isWhite)`: *Constructor for Piece objects.*
-- `virtual ~Piece() = default`: *Virtual destructor for proper inheritance cleanup.*
-- `bool isWhitePiece() const`: *Returns true if the piece is white.*
-- `virtual char getSymbol() const = 0`: *Pure virtual method to fetch the piece symbol.*
-- `virtual bool isValidMove(int fromRow, int fromCol, int toRow, int toCol, Board* board) = 0`: *Pure virtual method to check if a move is legal for this piece.*
-- `virtual Piece* clone() const = 0`: *Pure virtual function that returns a copy of the Piece object for simulation.*
+Each piece implements unique movement logic:
 
-### Derived Classes (King, Queen, etc.)
+#### **King** (`King.h`)
+- **Movement:** One square in any direction
+- **Special:** Castling logic with safety verification
+- **Symbol:** 'K' (White) / 'k' (Black)
 
-*Each piece type inherits from the Piece base class and implements its own movement logic.*
+#### **Queen** (`Queen.h`)
+- **Movement:** Combines rook and bishop movement
+- **Range:** Unlimited distance on ranks, files, and diagonals
+- **Symbol:** 'Q' (White) / 'q' (Black)
 
-- Override `isValidMove()` to implement individual piece logic:
-  - Knight uses L-shape rules
-  - Rook and Bishop use ray tracing
-  - Pawn handles diagonal capture, en passant, and forward pushes
-  - King adds castling detection with safety checks
-  - Queen combines Bishop + Rook movement
+#### **Rook** (`Rook.h`)
+- **Movement:** Horizontal and vertical lines
+- **Special:** Affects castling rights when moved
+- **Symbol:** 'R' (White) / 'r' (Black)
 
-*All moves are validated before updating the board state.*
+#### **Bishop** (`Bishop.h`)
+- **Movement:** Diagonal lines only
+- **Range:** Unlimited distance on diagonals
+- **Symbol:** 'B' (White) / 'b' (Black)
 
-![PlantUML diagram](media/image1.png)
+#### **Knight** (`Knight.h`)
+- **Movement:** L-shaped (2+1 squares)
+- **Special:** Can jump over other pieces
+- **Symbol:** 'N' (White) / 'n' (Black)
+
+#### **Pawn** (`Pawn.h`)
+- **Movement:** Forward one square, two on first move
+- **Capture:** Diagonal only
+- **Special:** En passant, promotion
+- **Symbol:** 'P' (White) / 'p' (Black)
+
+---
+
+## Architecture Overview
+
+```
+Game (Main Logic)
+├── Board (State Management)
+│   ├── Piece Hierarchy (Movement Rules)
+│   │   ├── King, Queen, Rook
+│   │   ├── Bishop, Knight, Pawn
+│   └── Move Validation
+├── ChessGUI (SFML Interface)
+│   ├── Rendering System
+│   ├── User Input Handling
+│   └── AI Integration
+└── Move System
+    ├── Move Struct (Data)
+    ├── PGN Generation
+    └── FEN Generation
+```
+
+---
+
+## Key Features
+
+### **Bird Engine (AI Implementation)**
+- **Algorithm:** Minimax with alpha-beta pruning
+- **Depth:** Currently fixed at 3 for performance balance
+- **Evaluation Factors:**
+  - Material balance (piece values)
+  - Piece-square table bonuses
+  - Castling status and king safety
+  - Center control and piece development
+- **Performance:** Node counting for optimization
+- **Achievement:** One game achieved 84% accuracy rating by Stockfish against a 1400 ELO player
+
+### **Special Moves**
+- **En Passant:** Automatic detection and execution
+- **Castling:** Safety verification and rights management
+- **Promotion:** User choice with default to Queen
+
+### **PGN & FEN Generation**
+- **PGN Output:** Standard algebraic notation with disambiguation logic (e.g., Nfg4)
+- **FEN Generation:** Complete position description including castling rights and en passant
+- **Move History:** Full game replay capability with notation export
+- **Validation:** Tested through chess.com analysis board verification
+
+### **Draw Conditions**
+- **Threefold Repetition:** Position tracking
+- **Fifty-Move Rule:** Move counter management
+- **Insufficient Material:** Automatic detection
+- **Stalemate:** No legal moves available
+
+---
+
+## Usage Modes
+
+### **Console Mode**
+- Text-based interface
+- Direct algebraic notation input
+- PGN/FEN output to console
+- Full game replay
+
+### **GUI Mode**
+- SFML-based graphical interface
+- Mouse-driven piece selection
+- Visual move highlighting
+- Real-time game state display
+
+---
+
+## Object-Oriented Design Principles
+
+### **Inheritance & Polymorphism**
+The game demonstrates clean OOP architecture through:
+- **Piece Hierarchy:** Abstract base class `Piece` with derived classes for each piece type
+- **Polymorphic Behavior:** Each piece overrides `isValidMove()` with specific movement rules
+- **Code Reusability:** Common piece functionality shared through inheritance
+- **Efficiency:** Polymorphic dispatch enables uniform piece handling
+
+### **Encapsulation & Abstraction**
+- **Board State Management:** `Board` class encapsulates 8×8 grid and game rules
+- **Game Logic Separation:** `Game` class handles turns, AI, and notation generation
+- **Data Hiding:** Private members with controlled public interfaces
+- **Modular Design:** Clear separation of concerns between classes
+
+---
+
+## Development Challenges & Solutions
+
+### **Major Challenges Overcome:**
+1. **Rule Compliance:** Implementing complex rules like castling and en passant
+2. **Checkmate Detection:** Fixed through proper board copying with custom copy constructor
+3. **PGN Disambiguation:** Resolving ambiguous notation (e.g., Nfg4 vs Neg4)
+4. **AI Tuning:** Balancing engine behavior for playability vs strength
+5. **State Tracking:** Managing castling rights and en passant through move flags
+
+### **Technical Learnings:**
+- Deep understanding of chess notation and game logic
+- Debugging polymorphic C++ code effectively
+- Game state representation using industry standards (FEN/PGN)
+- Performance considerations: 2D arrays vs bitboards for future optimization
+
+---
+
+## Testing & Validation
+
+The engine has been thoroughly tested through:
+- **Full Game Simulations:** Both PvP and AI modes
+- **External Validation:** Verification using chess.com analysis board
+- **Edge Case Testing:** Checkmate, stalemate, and draw conditions
+- **AI Performance:** Games analyzed by Stockfish for accuracy ratings
+
+---
+
+## Future Development
+
+### **Planned Improvements:**
+- **Enhanced AI:** Better heuristics and opening book integration
+- **Chess960 Support:** Fischer Random Chess with 960 possible starting positions
+- **Performance Optimization:** Transition to bitboard representation and hashing
+- **GUI Enhancement:** Further development of the SFML-based interface
+- **Engine Strength:** Improved evaluation functions for stronger play
+
+### **Current Focus:**
+The Bird Engine continues to evolve with better move selection algorithms and expanded chess variant support, maintaining the clean OOP architecture while improving performance and chess strength.
