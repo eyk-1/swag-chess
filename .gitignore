@@ -2,6 +2,11 @@
 build/
 out/
 cmake-build-*/
+x64/
+Debug/
+Release/
+bin/
+obj/
 
 # Visual Studio files
 .vs/
@@ -9,6 +14,10 @@ cmake-build-*/
 *.vcxproj
 *.vcxproj.filters
 *.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
 # Visual Studio Code files
 .vscode/
@@ -42,6 +51,33 @@ cmake-build-*/
 *.exe
 *.out
 *.app
+
+# Visual Studio build artifacts
+*.iobj
+*.ipdb
+*.tlog
+*.recipe
+*.log
+*.lastbuildstate
+*.ilk
+*.meta
+*.pch
+*.pdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
 
 # SFML libraries and dependencies
 sfml/
@@ -92,3 +128,23 @@ _deps
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*~
