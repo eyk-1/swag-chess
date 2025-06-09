@@ -1,50 +1,94 @@
-cmake_minimum_required(VERSION 3.16)
-project(Chess)
+# Build directories
+build/
+out/
+cmake-build-*/
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Visual Studio files
+.vs/
+*.vcxproj.user
+*.vcxproj
+*.vcxproj.filters
+*.sln
 
-# Find SFML
-find_package(SFML 3.0 COMPONENTS system window graphics REQUIRED)
+# Visual Studio Code files
+.vscode/
 
-# Create executable
-add_executable(Chess
-    Chess/Chess.cpp
-    Chess/ChessGUI.cpp
-    Chess/Board.cpp
-    Chess/Piece.cpp
-    Chess/Pawn.cpp
-    Chess/Rook.cpp
-    Chess/Knight.cpp
-    Chess/Bishop.cpp
-    Chess/King.cpp
-    Chess/Queen.cpp
-    Chess/Game.cpp
-    Chess/Moves.cpp
-)
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
 
-# Add header include directory
-target_include_directories(Chess PRIVATE Chess)
+# Precompiled Headers
+*.gch
+*.pch
 
-# Link SFML libraries
-target_link_libraries(Chess sfml-graphics sfml-window sfml-system)
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
 
-# Copy SFML DLLs to output directory on Windows
-if(WIN32)
-    add_custom_command(TARGET Chess POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:sfml-system>
-        $<TARGET_FILE:sfml-window>
-        $<TARGET_FILE:sfml-graphics>
-        $<TARGET_FILE_DIR:Chess>
-    )
-endif()
+# Fortran module files
+*.mod
+*.smod
 
-# Set startup project for Visual Studio
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Chess)
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
 
-# Set working directory for debugging
-set_target_properties(Chess PROPERTIES
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
+# Executables
+*.exe
+*.out
+*.app
+
+# SFML libraries and dependencies
+sfml/
+SFML/
+sfml-*/
+SFML-*/
+lib/
+libs/
+dependencies/
+extlibs/
+*.dll
+*.so.*
+*.dylib.*
+
+# Package managers
+vcpkg_installed/
+conan/
+.conan/
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
