@@ -35,7 +35,11 @@ public:
 
     // Make getBoard() return a reference instead of a copy
     Board& getBoard() { return board; }
-
+    bool getRankCheck() { return RankCheck; }
+    bool getFileCheck() { return FileCheck; }
     // Keep the const version for read-only access
     const Board& getBoard() const { return board; }
+    void addMove(Move move, string FEN);
+    void printMoveHistory();
+
 };

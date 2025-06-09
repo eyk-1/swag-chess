@@ -44,6 +44,8 @@ private:
     sf::RectangleShape modeButton;
     sf::Text modeText;
 
+    // Move History
+    int moves;
 
 public:
     ChessGUI(bool playVsAI = false, bool aiPlaysWhite = false);

@@ -423,7 +423,7 @@ using namespace std;
         }
 
         // 2. Active Color
-        fen += (whiteTurn ? " w " : " b ");
+        fen += (!whiteTurn ? " w " : " b ");
 
         // 3. Castling Availability - Use the actual castling rights from the board
         std::string castling;

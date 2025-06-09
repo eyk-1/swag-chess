@@ -1,4 +1,5 @@
 #include "ChessGUI.h"
+#include "Pawn.h"
 #include <iostream>
 #include <filesystem>
 
@@ -297,25 +298,53 @@ void ChessGUI::selectPiece(int row, int col) {
 void ChessGUI::movePiece(int toRow, int toCol) {
     if (pieceSelected) {
         Board& boardRef = game.getBoard();
-
-        // Store the move details before making the move
-        Move move;
-        move.fromCoord = string(1, 'A' + selectedCol) + to_string(8 - selectedRow);
-        move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
-        move.player = game.isWhiteTurn() ? "White" : "Black";
-
         Piece* piece = boardRef.getPiece(selectedRow, selectedCol);
         Piece* capturedPiece = boardRef.getPiece(toRow, toCol);
-
-        if (piece) {
-            move.pieceSymbol = piece->getSymbol();
+        bool isPromotion = boardRef.isPromotionMove(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn());
+        // Store the move details before making the move
+        string fromCoord = string(1, 'A' + selectedCol) + to_string(8 - selectedRow);
+        string toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+        bool isEnPassant = (piece && dynamic_cast<Pawn*>(piece) && selectedCol != toCol && capturedPiece != nullptr);
+        bool isKingside = false;
+        bool isQueenside = false;
+        if (piece && tolower(piece->getSymbol()) == 'k') { // If moving a king
+            int colDiff = abs(toCol - selectedCol);
+            // Castling detected if king moves 2 squares horizontally on same row
+            if (colDiff == 2 && toRow == selectedRow) {
+                if (toCol > selectedCol) {
+                    // Kingside castling (king moves right)
+                    isKingside = true;
+                }
+                else {
+                    // Queenside castling (king moves left)  
+                    isQueenside = true;
+                }
+            }
         }
+        if (!dynamic_cast<Pawn*>(piece)) {
+            game.AmbiguityCheck(boardRef, game.isWhiteTurn(), selectedRow, selectedCol, toRow, toCol);
+        }
+        // Move creation
+        Move move = {
+            game.isWhiteTurn() ? "White" : "Black",
+            fromCoord,
+            toCoord,
+            piece ? piece->getSymbol() : '?',
+            capturedPiece != nullptr || isEnPassant,
+            isEnPassant,
+            isPromotion,
+            'Q',
+            boardRef.isInCheck(!game.isWhiteTurn()),
+            boardRef.isCheckmate(!game.isWhiteTurn()),
+            isKingside,
+            isQueenside,
+            game.getRankCheck(),
+            game.getFileCheck()
+        };
 
         if (boardRef.movePiece(selectedRow, selectedCol, toRow, toCol, game.isWhiteTurn())) {
             // IMPORTANT: Set the last move for en passant tracking
             boardRef.setLastMove(move);
-
-            // Update fifty move rule counter
             bool isPawnMove = (piece && tolower(piece->getSymbol()) == 'p');
             bool isCapture = (capturedPiece != nullptr);
 
@@ -327,7 +356,13 @@ void ChessGUI::movePiece(int toRow, int toCol) {
             else {
                 fiftyMoveCounter++;
             }
+            moves++;
 
+            // FEN string creation
+            string fen = boardRef.generateFEN(game.isWhiteTurn(), boardRef.getWhiteCanCastleKingside(),
+                boardRef.getWhiteCanCastleQueenside(), boardRef.getBlackCanCastleKingside(), boardRef.getBlackCanCastleQueenside(), fiftyMoveCounter, moves);
+            // Store moves in the vectors
+            game.addMove(move, fen);
             // Store current turn before toggling
             bool wasWhiteTurn = game.isWhiteTurn();
 
@@ -397,18 +432,55 @@ void ChessGUI::handleAIMove() {
 
         Board& boardRef = game.getBoard();
 
-        // Create move record for castling
-        Move move;
-        move.player = aiIsWhite ? "White" : "Black";
-        move.fromCoord = string(1, 'A' + fromCol) + to_string(8 - fromRow);
-        move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
-        move.pieceSymbol = 'K';
-        move.isKingsideCastle = (bestMove == "O-O");
-        move.isQueensideCastle = (bestMove == "O-O-O");
+        Piece* piece = boardRef.getPiece(selectedRow, selectedCol);
+        Piece* capturedPiece = boardRef.getPiece(toRow, toCol);
+        // Store the move details before making the move
+        string fromCoord = string(1, 'A' + selectedCol) + to_string(8 - selectedRow);
+        string toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+        bool isKingside = false;
+        bool isQueenside = false;
+        if (piece && tolower(piece->getSymbol()) == 'k') { // If moving a king
+            int colDiff = abs(toCol - selectedCol);
+            // Castling detected if king moves 2 squares horizontally on same row
+            if (colDiff == 2 && toRow == selectedRow) {
+                if (toCol > selectedCol) {
+                    // Kingside castling (king moves right)
+                    isKingside = true;
+                }
+                else {
+                    // Queenside castling (king moves left)  
+                    isQueenside = true;
+                }
+            }
+        }
+        // Move creation
+        Move move = {
+            game.isWhiteTurn() ? "White" : "Black",
+            fromCoord,
+            toCoord,
+            piece ? piece->getSymbol() : '?',
+            false,
+            false,
+            false,
+            'Q',
+            boardRef.isInCheck(!game.isWhiteTurn()),
+            boardRef.isCheckmate(!game.isWhiteTurn()),
+            isKingside,
+            isQueenside,
+            false,
+            false
+        };
 
-        if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
+        if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
+            // IMPORTANT: Set the last move for en passant tracking
             boardRef.setLastMove(move);
-
+            fiftyMoveCounter++;
+            moves++;
+            // FEN string creation
+            string fen = boardRef.generateFEN(game.isWhiteTurn(), boardRef.getWhiteCanCastleKingside(),
+                boardRef.getWhiteCanCastleQueenside(), boardRef.getBlackCanCastleKingside(), boardRef.getBlackCanCastleQueenside(), fiftyMoveCounter, moves);
+            // Store moves in the vectors
+            game.addMove(move, fen);
             // Store current turn before toggling
             bool wasWhiteTurn = game.isWhiteTurn();
 
@@ -428,7 +500,6 @@ void ChessGUI::handleAIMove() {
         }
         return;
     }
-
     // Parse regular moves - handle both "A2 E4" and "a2e4" formats
     int fromCol, fromRow, toCol, toRow;
 
@@ -460,34 +531,38 @@ void ChessGUI::handleAIMove() {
 
     Board& boardRef = game.getBoard();
     Piece* piece = boardRef.getPiece(fromRow, fromCol);
-
-    if (!piece) {
-        std::cout << "No piece at AI's from position!" << std::endl;
-        return;
-    }
-
-    if (piece->isWhitePiece() != aiIsWhite) {
-        std::cout << "AI trying to move opponent's piece!" << std::endl;
-        return;
-    }
-
-    // Create proper move record
-    Move move;
-    move.player = aiIsWhite ? "White" : "Black";
-    move.fromCoord = string(1, 'A' + fromCol) + to_string(8 - fromRow);
-    move.toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
-    move.pieceSymbol = piece->getSymbol();
-
-    // Check for capture
     Piece* capturedPiece = boardRef.getPiece(toRow, toCol);
-    move.isCapture = (capturedPiece != nullptr);
+    bool isPromotion = boardRef.isPromotionMove(fromRow, fromCol, toRow, toCol, game.isWhiteTurn());
+    // Store the move details before making the move
+    string fromCoord = string(1, 'A' + fromCol) + to_string(8 - fromRow);
+    string toCoord = string(1, 'A' + toCol) + to_string(8 - toRow);
+    bool isEnPassant = (piece && dynamic_cast<Pawn*>(piece) && fromCol != toCol && capturedPiece != nullptr);
+    bool isKingside = false;
+    bool isQueenside = false;
+    if (!dynamic_cast<Pawn*>(piece)) {
+        game.AmbiguityCheck(boardRef, game.isWhiteTurn(), fromRow, fromCol, toRow, toCol);
+    }
+    // Move creation
+    Move move = {
+        game.isWhiteTurn() ? "White" : "Black",
+        fromCoord,
+        toCoord,
+        piece ? piece->getSymbol() : '?',
+        capturedPiece != nullptr || isEnPassant,
+        isEnPassant,
+        isPromotion,
+        'Q',
+        boardRef.isInCheck(!game.isWhiteTurn()),
+        boardRef.isCheckmate(!game.isWhiteTurn()),
+        isKingside,
+        isQueenside,
+        game.getRankCheck(),
+        game.getFileCheck()
+    };
 
-    // Attempt the move
-    if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, aiIsWhite)) {
-        // Set the move for game history and en passant tracking
+    if (boardRef.movePiece(fromRow, fromCol, toRow, toCol, game.isWhiteTurn())) {
+        // IMPORTANT: Set the last move for en passant tracking
         boardRef.setLastMove(move);
-
-        // Update fifty move rule counter for AI moves
         bool isPawnMove = (piece && tolower(piece->getSymbol()) == 'p');
         bool isCapture = (capturedPiece != nullptr);
 
@@ -499,7 +574,13 @@ void ChessGUI::handleAIMove() {
         else {
             fiftyMoveCounter++;
         }
+        moves++;
 
+        // FEN string creation
+        string fen = boardRef.generateFEN(game.isWhiteTurn(), boardRef.getWhiteCanCastleKingside(),
+            boardRef.getWhiteCanCastleQueenside(), boardRef.getBlackCanCastleKingside(), boardRef.getBlackCanCastleQueenside(), fiftyMoveCounter, moves);
+        // Store moves in the vectors
+        game.addMove(move, fen);
         // Store current turn before toggling
         bool wasWhiteTurn = game.isWhiteTurn();
 
@@ -698,6 +779,7 @@ void ChessGUI::updateGameStatus() {
 }
 
 void ChessGUI::resetGame() {
+    game.printMoveHistory();
     game = Game();
     pieceSelected = false;
     selectedRow = -1;

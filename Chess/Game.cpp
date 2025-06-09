@@ -103,7 +103,6 @@ void Game::printFEN(const vector<string>& fenMoves) {
     for (size_t i = 0; i < fenMoves.size(); ++i) {
         cout << fenMoves[i] << endl;
     }
-
     std::cout << "\n";
 }
 int Game::evaluateBoard(Board& b, bool aiIsWhite) {
@@ -558,4 +557,16 @@ void Game::start() {
         cout << endl << fen << endl;
         fenMoves.push_back(fen);
     }
+}
+
+void Game::addMove(Move move,string FEN) {
+    moveHistory.push_back(move);
+    pgnMoves.push_back(move.toPGN());
+    fenMoves.push_back(FEN);
+    return;
+}
+
+void Game::printMoveHistory() {
+    printPGN(pgnMoves);
+    printFEN(fenMoves);
 }

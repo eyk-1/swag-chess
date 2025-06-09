@@ -115,7 +115,7 @@ int main() {
         if (chessGUI) {
             if (chessGUI->initialize()) {
                 std::cout << "Starting chess game..." << std::endl;
-                chessGUI->run();
+                chessGUI->run();    
             }
             else {
                 std::cerr << "Failed to initialize chess GUI!" << std::endl;
