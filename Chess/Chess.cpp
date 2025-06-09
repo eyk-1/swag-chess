@@ -7,7 +7,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({ 600u, 400u }), "Swag Chess - Select Mode");
 
     sf::Font font;
-    if (!font.openFromFile("arial.ttf")) {
+    if (!font.openFromFile("C:\\Users\\User\\source\\repos\\swag-chess\\Chess\\arial.ttf")) {
         // Try alternative font locations
         if (!font.openFromFile("C:/Windows/Fonts/arial.ttf") &&
             !font.openFromFile("/System/Library/Fonts/Arial.ttf") &&

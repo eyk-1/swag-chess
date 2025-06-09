@@ -67,7 +67,7 @@ void ChessGUI::updateDrawConditions() {
 
 bool ChessGUI::initialize() {
     // Load font FIRST before setting up any text elements
-    if (!font.openFromFile("arial.ttf")) {
+    if (!font.openFromFile("C:\\Users\\User\\source\\repos\\swag-chess\\Chess\\arial.ttf")) {
         // Try alternative font locations
         if (!font.openFromFile("C:/Windows/Fonts/arial.ttf") &&
             !font.openFromFile("C:/Windows/Fonts/Arial.ttf") &&
@@ -124,10 +124,10 @@ bool ChessGUI::initialize() {
 bool ChessGUI::loadPieceTextures() {
     std::vector<std::string> pieces = { "wp", "wr", "wn", "wb", "wq", "wk",
                                        "bp", "br", "bn", "bb", "bq", "bk" };
-
+ 
     for (const std::string& piece : pieces) {
         sf::Texture texture;
-        std::string path = "assets/" + piece + ".png";
+        std::string path =  "C:\\Users\\User\\source\\repos\\swag-chess\\Chess\\assets\\" + piece + ".png";
 
         if (!texture.loadFromFile(path)) {
             std::cerr << "Failed to load texture: " << path << std::endl;
