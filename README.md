@@ -37,8 +37,8 @@ chess game made in the second semester of a CS major at IBA :D
 
 - **C++17** or higher
 - **SFML 3.0.0+** for graphics
-- Standard chess piece PNG files in `assets/` folder
-- Font file (arial.ttf) for UI text
+- Standard chess piece PNG files in `assets/` folder (already there, if executeable doesn't run, change the location of the assets folder)
+- Font file (arial.ttf) for UI text (already there, if executeable doesn't run, change the location of the ttf file)
 
 ## Features
 
