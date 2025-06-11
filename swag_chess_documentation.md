@@ -347,9 +347,8 @@ The engine has been thoroughly tested through:
 - **Enhanced AI:** Better heuristics and opening book integration
 - **Chess960 Support:** Fischer Random Chess with 960 possible starting positions
 - **Performance Optimization:** Transition to bitboard representation and hashing
-- **GUI Enhancement:** Further development of the SFML-based interface
+- **GUI Enhancement:** Further development of the SFML-based interface or possible switch to other libraries (for efficiency)
 - **Engine Strength:** Improved evaluation functions for stronger play
-- **Move History:** Show move history beside the board while playing, also have it update as the game goes on and when the game ends, save option
 - **Efficiency:** Switch to bitboards instead of 2D arrays
 
 ### **Current Focus:**
