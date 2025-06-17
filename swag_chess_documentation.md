@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the Swag Chess codebase. The game is written in C++ using object-oriented programming principles and currently supports GUI mode using SFML, with console mode discontinued (maybe). 
+This document explains the Swag Chess codebase. The game is written in C++ using object-oriented programming principles and currently supports GUI mode using SFML. 
 
 **Key Features:**
 - Player vs Player and Player vs AI gameplay modes
@@ -288,7 +288,7 @@ Game (Main Logic)
 - Visual move highlighting
 - Real-time game state display
 
-### **Console Mode (In Development)**
+### **Console Mode (Discontinued)**
 - Text-based interface
 - Direct algebraic notation input
 - PGN/FEN output to console
@@ -343,13 +343,12 @@ The engine has been thoroughly tested through:
 ## Future Development
 
 ### **Planned Improvements:**
-- **Console/GUI Mode Selection:** Not fully confirmed but have thought about it
 - **Enhanced AI:** Better heuristics and opening book integration
 - **Chess960 Support:** Fischer Random Chess with 960 possible starting positions
 - **Performance Optimization:** Transition to bitboard representation and hashing
 - **GUI Enhancement:** Further development of the SFML-based interface or possible switch to other libraries (for efficiency)
-- **Engine Strength:** Improved evaluation functions for stronger play
-- **Efficiency:** Switch to bitboards instead of 2D arrays
+- **Loading positions through FEN:** Resume games from saved states
+- **Game Loading via PGN:** Exporting and importing gameplay sessions
 
 ### **Current Focus:**
 The Bird Engine continues to evolve with better move selection algorithms and expanded chess variant support, maintaining the clean OOP architecture while improving performance and chess strength.
